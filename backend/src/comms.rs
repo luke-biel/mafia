@@ -48,13 +48,14 @@ impl UserBuffers {
         Ok(())
     }
 
-    pub fn recv_out(&self, guid: Uuid) -> broadcast::Receiver<MessageOut> {
-        self.buffers
+    pub fn out_chan(&self, guid: Uuid) -> Result<broadcast::Receiver<MessageOut>, Error> {
+        Ok(self
+            .buffers
             .get(&guid)
-            .unwrap()
+            .ok_or(Error::UserNotFound)? // TODO: handle missing
             .send_out
             .lock()
             .unwrap()
-            .subscribe() // TODO: handle missing
+            .subscribe())
     }
 }

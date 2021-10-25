@@ -4,6 +4,7 @@ use warp::reject::Reject;
 pub enum Error {
     GameInProgress,
     InternalError,
+    UserNotFound,
 }
 
 impl Reject for Error {}

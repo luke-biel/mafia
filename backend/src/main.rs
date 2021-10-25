@@ -18,8 +18,8 @@ async fn main() {
     let events =
         warp::path!("events" / Uuid).and(warp::get()).map(|guid| {
             match routes::route_events(guid) {
-                Ok(steam) => {
-                    let stream = steam.map(|msg| warp::sse::Event::default().json_data(msg));
+                Ok(stream) => {
+                    let stream = stream.map(|msg| warp::sse::Event::default().json_data(msg));
                     warp::sse::reply(stream).into_response()
                 }
                 Err(_) => warp::reply::with_status(warp::reply::json(&()), StatusCode::NOT_FOUND)

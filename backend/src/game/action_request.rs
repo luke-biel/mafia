@@ -21,6 +21,6 @@ impl ActionRequest {
     }
 
     pub fn blocking(&self) -> bool {
-        !matches!(self, Self::ProposeVote | Self::SelectBlackmailed)
+        !matches!(self, Self::ProposeVote)
     }
 }

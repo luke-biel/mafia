@@ -8,7 +8,9 @@ use tokio::sync::broadcast;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
-pub enum MessageIn {}
+pub enum MessageIn {
+    Empty
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub enum MessageOut {
@@ -71,5 +73,16 @@ impl UserBuffers {
             .lock()
             .unwrap()
             .clone())
+    }
+
+    pub fn in_recv_chan(&self, guid: Uuid) -> Result<broadcast::Receiver<MessageIn>, Error> {
+        Ok(self
+            .buffers
+            .get(&guid)
+            .ok_or(Error::UserNotFound)?
+            .send_in
+            .lock()
+            .unwrap()
+            .subscribe())
     }
 }

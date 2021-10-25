@@ -87,44 +87,9 @@ impl Game {
 
 pub async fn start_game() {
     loop {
-        let read = GAME_STATE.read().unwrap();
-        let time_of_day = read.lobby.time_of_day;
-        let day = read.lobby.day;
-        let alive = read
-            .lobby
-            .roles
-            .iter()
-            .filter(|(_, f)| f.alive)
-            .collect::<Vec<_>>();
-        let top_mafia = read.top_value_living_mafia();
-        let mut requests = HashMap::new();
+        let (time_of_day, day, top_mafia, mut requests) = unpack_current_game_state();
 
-        // Every role has it's own actions added here
-        for (id, function) in alive {
-            requests.insert(*id, function.card.request_user_action(time_of_day, day));
-        }
-
-        // Let mafia shoot
-        if time_of_day == TimeOfDay::Night && day != 0 {
-            if let Some(top_mafia) = top_mafia {
-                let item = requests.get_mut(&top_mafia).unwrap();
-                item.push(ActionRequest::Shoot);
-            }
-        }
-
-        // Let city members add voting proposals
-        if time_of_day == TimeOfDay::Day {
-            requests
-                .iter_mut()
-                .for_each(|(_, actions)| actions.push(ActionRequest::ProposeVote))
-        }
-
-        // Let city members cast a vote
-        if time_of_day == TimeOfDay::Dusk {
-            requests
-                .iter_mut()
-                .for_each(|(_, actions)| actions.push(ActionRequest::CastVote))
-        }
+        push_reoccuring_action_requests(time_of_day, day, top_mafia, &mut requests);
 
         let mut blocking = requests
             .into_iter()
@@ -135,13 +100,70 @@ pub async fn start_game() {
         let non_blocking: Vec<_> = blocking.take_while_ref(|(_, a)| !a.blocking()).collect();
 
         for (id, action) in non_blocking {
-            let chan = {
-                let comms = PLAYER_COMMS.read().unwrap();
-                comms.out_send_chan(id).unwrap()
-            };
+            let comms = PLAYER_COMMS.read().unwrap();
+            let chan = comms.out_send_chan(id).unwrap();
             chan.send(action.into_message()).unwrap();
         }
 
-        break;
+        let mut deltas = Vec::new();
+
+        for (id, action) in blocking {
+            let (send, mut recv) = {
+                let comms = PLAYER_COMMS.read().unwrap();
+                let send = comms.out_send_chan(id).unwrap();
+                let recv = comms.in_recv_chan(id).unwrap();
+                (send, recv)
+            };
+
+            send.send(action.into_message()).unwrap();
+
+            let msg = recv.recv().await.unwrap();
+
+            deltas.push((id, msg));
+        }
     }
+}
+
+fn push_reoccuring_action_requests(time_of_day: TimeOfDay, day: usize, top_mafia: Option<Uuid>, requests: &mut HashMap<Uuid, Vec<ActionRequest>>) {
+    // Let mafia shoot
+    if time_of_day == TimeOfDay::Night && day != 0 {
+        if let Some(top_mafia) = top_mafia {
+            let item = requests.get_mut(&top_mafia).unwrap();
+            item.push(ActionRequest::Shoot);
+        }
+    }
+
+    // Let city members add voting proposals
+    if time_of_day == TimeOfDay::Day {
+        requests
+            .iter_mut()
+            .for_each(|(_, actions)| actions.push(ActionRequest::ProposeVote))
+    }
+
+    // Let city members cast a vote
+    if time_of_day == TimeOfDay::Dusk {
+        requests
+            .iter_mut()
+            .for_each(|(_, actions)| actions.push(ActionRequest::CastVote))
+    }
+}
+
+fn unpack_current_game_state() -> (TimeOfDay, usize, Option<Uuid>, HashMap<Uuid, Vec<ActionRequest>>) {
+    let read = GAME_STATE.read().unwrap();
+    let time_of_day = read.lobby.time_of_day;
+    let day = read.lobby.day;
+    let alive = read
+        .lobby
+        .roles
+        .iter()
+        .filter(|(_, f)| f.alive)
+        .collect::<Vec<_>>();
+    let top_mafia = read.top_value_living_mafia();
+    let mut requests = HashMap::new();
+
+    // Every role has it's own actions added here
+    for (id, function) in alive {
+        requests.insert(*id, function.card.request_user_action(time_of_day, day));
+    }
+    (time_of_day, day, top_mafia, requests)
 }

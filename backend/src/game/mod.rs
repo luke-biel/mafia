@@ -1,29 +1,37 @@
-use crate::game::card::Role;
 use std::collections::HashMap;
 use std::fmt::Debug;
+
+use itertools::Itertools;
 use uuid::Uuid;
 
+use action_request::ActionRequest;
+
+use crate::game::card::{Faction, Role};
+use crate::GAME_STATE;
+use crate::PLAYER_COMMS;
+
+pub mod action_request;
 pub mod card;
 
 #[derive(Debug, Default)]
 pub struct Game {
-    pub(crate) players: HashMap<Uuid, String>,
-    lobby: Option<Lobby>,
+    pub players: HashMap<Uuid, String>,
+    pub lobby: Lobby,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Lobby {
-    roles: HashMap<Uuid, Function>,
-    time_of_day: TimeOfDay,
-    day: usize,
-    modifiers: GameModifiers,
+    pub roles: HashMap<Uuid, Function>,
+    pub time_of_day: TimeOfDay,
+    pub day: usize,
+    pub modifiers: GameModifiers,
 }
 
 #[derive(Debug)]
 pub struct Function {
-    card: Box<dyn Role + Send + Sync + 'static>,
-    alive: bool,
-    modifiers: RoleModifiers,
+    pub card: &'static (dyn Role + Send + Sync),
+    pub alive: bool,
+    pub modifiers: RoleModifiers,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -33,26 +41,22 @@ pub enum TimeOfDay {
     Night,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GameModifiers {
     pub is_gun_shop_dead_during_day: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct RoleModifiers {
-    diabolised: bool,
-    marked_by_aod: bool,
+    pub diabolized: bool,
+    pub marked_by_aod: bool,
+    pub blackmailed: bool,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum ActionRequest {
-    CheckGoodBad,
-    CheckCard,
-    Heal,
-    SelectBlackmailed,
-    FinishPatient,
-    MarkForDeath,
-    SelectDiabolised,
+impl const Default for TimeOfDay {
+    fn default() -> Self {
+        Self::Night
+    }
 }
 
 impl Game {
@@ -68,5 +72,76 @@ impl Game {
 
     pub fn find(&self, guid: Uuid) -> Option<String> {
         self.players.get(&guid).cloned()
+    }
+
+    pub fn top_value_living_mafia(&self) -> Option<Uuid> {
+        self.lobby
+            .roles
+            .iter()
+            .filter(|(_, f)| f.card.faction() == Faction::Mafia)
+            .sorted_by(|(_, a), (_, b)| a.card.value().cmp(&b.card.value()))
+            .map(|(id, _)| *id)
+            .next()
+    }
+}
+
+pub async fn start_game() {
+    loop {
+        let read = GAME_STATE.read().unwrap();
+        let time_of_day = read.lobby.time_of_day;
+        let day = read.lobby.day;
+        let alive = read
+            .lobby
+            .roles
+            .iter()
+            .filter(|(_, f)| f.alive)
+            .collect::<Vec<_>>();
+        let top_mafia = read.top_value_living_mafia();
+        let mut requests = HashMap::new();
+
+        // Every role has it's own actions added here
+        for (id, function) in alive {
+            requests.insert(*id, function.card.request_user_action(time_of_day, day));
+        }
+
+        // Let mafia shoot
+        if time_of_day == TimeOfDay::Night && day != 0 {
+            if let Some(top_mafia) = top_mafia {
+                let item = requests.get_mut(&top_mafia).unwrap();
+                item.push(ActionRequest::Shoot);
+            }
+        }
+
+        // Let city members add voting proposals
+        if time_of_day == TimeOfDay::Day {
+            requests
+                .iter_mut()
+                .for_each(|(_, actions)| actions.push(ActionRequest::ProposeVote))
+        }
+
+        // Let city members cast a vote
+        if time_of_day == TimeOfDay::Dusk {
+            requests
+                .iter_mut()
+                .for_each(|(_, actions)| actions.push(ActionRequest::CastVote))
+        }
+
+        let mut blocking = requests
+            .into_iter()
+            .map(|(id, actions)| actions.into_iter().map(move |action| (id, action)))
+            .flatten()
+            .sorted_by(|(_, a), (_, b)| a.blocking().cmp(&b.blocking()));
+
+        let non_blocking: Vec<_> = blocking.take_while_ref(|(_, a)| !a.blocking()).collect();
+
+        for (id, action) in non_blocking {
+            let chan = {
+                let comms = PLAYER_COMMS.read().unwrap();
+                comms.out_send_chan(id).unwrap()
+            };
+            chan.send(action.into_message()).unwrap();
+        }
+
+        break;
     }
 }

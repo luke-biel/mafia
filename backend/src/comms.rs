@@ -1,3 +1,4 @@
+use crate::game::action_request::ActionRequest;
 use crate::reject::Error;
 use serde::Serialize;
 use std::collections::hash_map::Entry;
@@ -10,7 +11,9 @@ use uuid::Uuid;
 pub enum MessageIn {}
 
 #[derive(Debug, Clone, Serialize)]
-pub enum MessageOut {}
+pub enum MessageOut {
+    Action(ActionRequest),
+}
 
 pub struct CommunicationBuffer {
     pub send_in: Arc<Mutex<broadcast::Sender<MessageIn>>>,
@@ -48,7 +51,7 @@ impl UserBuffers {
         Ok(())
     }
 
-    pub fn out_chan(&self, guid: Uuid) -> Result<broadcast::Receiver<MessageOut>, Error> {
+    pub fn out_recv_chan(&self, guid: Uuid) -> Result<broadcast::Receiver<MessageOut>, Error> {
         Ok(self
             .buffers
             .get(&guid)
@@ -57,5 +60,16 @@ impl UserBuffers {
             .lock()
             .unwrap()
             .subscribe())
+    }
+
+    pub fn out_send_chan(&self, guid: Uuid) -> Result<broadcast::Sender<MessageOut>, Error> {
+        Ok(self
+            .buffers
+            .get(&guid)
+            .ok_or(Error::UserNotFound)? // TODO: handle missing
+            .send_out
+            .lock()
+            .unwrap()
+            .clone())
     }
 }

@@ -1,7 +1,11 @@
 use crate::GAME_STATE;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use rustyline::{error::ReadlineError, Editor};
+use std::collections::HashMap;
 
-use crate::game::card::print_all_roles;
+use crate::game::card::{print_all_roles, ALL_ROLES};
+use crate::game::{start_game, Function, GameModifiers, RoleModifiers, TimeOfDay};
 
 pub async fn handle_admin() {
     let mut rl = Editor::<()>::new();
@@ -34,7 +38,46 @@ pub async fn handle_admin() {
                         let game = GAME_STATE.read().unwrap();
                         println!("{:#?}", &*game)
                     }
-                    _ if line.starts_with("roles") => {}
+                    _ if line.starts_with("roles") => {
+                        let (_, role_list) = line.split_once(' ').unwrap();
+                        let roles = role_list
+                            .split(',')
+                            .map(|i| i.parse::<usize>())
+                            .collect::<Result<Vec<_>, _>>()
+                            .unwrap();
+                        let mut gd = GAME_STATE.write().unwrap();
+                        if roles.len() != gd.players.len() {
+                            eprintln!("number of players and roles do not match");
+                            continue;
+                        }
+
+                        let mut players: Vec<_> = gd.players.keys().collect();
+                        players.shuffle(&mut thread_rng());
+                        let mut living = HashMap::with_capacity(players.len());
+                        for (role, player) in roles.iter().zip(players.iter()) {
+                            living.insert(
+                                **player,
+                                Function {
+                                    card: ALL_ROLES[*role],
+                                    modifiers: RoleModifiers {
+                                        diabolized: false,
+                                        blackmailed: false,
+                                        marked_by_aod: false,
+                                    },
+                                    alive: true,
+                                },
+                            );
+                        }
+
+                        gd.lobby.roles = living;
+                        gd.lobby.time_of_day = TimeOfDay::Night;
+                        gd.lobby.day = 0;
+                        gd.lobby.modifiers = GameModifiers {
+                            is_gun_shop_dead_during_day: false,
+                        };
+
+                        tokio::spawn(start_game());
+                    }
                     _ => println!("Unknown command"),
                 }
             }

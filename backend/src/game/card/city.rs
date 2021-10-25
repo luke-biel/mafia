@@ -1,5 +1,6 @@
-use crate::game::card::{Blank, Card, City, Doctor, Escort, GunShop, Katani, Role};
-use crate::game::{ActionRequest, TimeOfDay};
+use crate::game::action_request::ActionRequest;
+use crate::game::card::{Blank, Card, City, Doctor, Escort, Faction, GunShop, Katani, Role, Value};
+use crate::game::TimeOfDay;
 
 pub const CITY_GUN_SHOP: Card<City, GunShop> = Card::default();
 pub const CITY_KATANI: Card<City, Katani> = Card::default();
@@ -11,6 +12,14 @@ impl Role for Card<City, GunShop> {
     fn request_user_action(&self, _time_of_day: TimeOfDay, _day: usize) -> Vec<ActionRequest> {
         Vec::new()
     }
+
+    fn faction(&self) -> Faction {
+        Faction::City
+    }
+
+    fn value(&self) -> Value {
+        Value::Ace
+    }
 }
 
 impl Role for Card<City, Katani> {
@@ -20,6 +29,14 @@ impl Role for Card<City, Katani> {
         } else {
             Vec::new()
         }
+    }
+
+    fn faction(&self) -> Faction {
+        Faction::City
+    }
+
+    fn value(&self) -> Value {
+        Value::King
     }
 }
 
@@ -31,6 +48,14 @@ impl Role for Card<City, Escort> {
             Vec::new()
         }
     }
+
+    fn faction(&self) -> Faction {
+        Faction::City
+    }
+
+    fn value(&self) -> Value {
+        Value::Queen
+    }
 }
 
 impl Role for Card<City, Doctor> {
@@ -41,10 +66,26 @@ impl Role for Card<City, Doctor> {
             Vec::new()
         }
     }
+
+    fn faction(&self) -> Faction {
+        Faction::City
+    }
+
+    fn value(&self) -> Value {
+        Value::Jack
+    }
 }
 
 impl Role for Card<City, Blank> {
     fn request_user_action(&self, _time_of_day: TimeOfDay, _day: usize) -> Vec<ActionRequest> {
         Vec::new()
+    }
+
+    fn faction(&self) -> Faction {
+        Faction::City
+    }
+
+    fn value(&self) -> Value {
+        Value::V2
     }
 }

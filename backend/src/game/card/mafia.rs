@@ -1,5 +1,6 @@
-use crate::game::card::{Blackmailer, Blank, Card, Coquette, Doctor, Mafia, Role};
-use crate::game::{ActionRequest, TimeOfDay};
+use crate::game::action_request::ActionRequest;
+use crate::game::card::{Blackmailer, Blank, Card, Coquette, Doctor, Faction, Mafia, Role, Value};
+use crate::game::TimeOfDay;
 
 pub const MAFIA_BLACKMAILER: Card<Mafia, Blackmailer> = Card::default();
 pub const MAFIA_COQUETTE: Card<Mafia, Coquette> = Card::default();
@@ -14,11 +15,27 @@ impl Role for Card<Mafia, Blackmailer> {
             Vec::new()
         }
     }
+
+    fn faction(&self) -> Faction {
+        Faction::Mafia
+    }
+
+    fn value(&self) -> Value {
+        Value::King
+    }
 }
 
 impl Role for Card<Mafia, Coquette> {
     fn request_user_action(&self, _time_of_day: TimeOfDay, _day: usize) -> Vec<ActionRequest> {
         Vec::new()
+    }
+
+    fn faction(&self) -> Faction {
+        Faction::Mafia
+    }
+
+    fn value(&self) -> Value {
+        Value::Queen
     }
 }
 
@@ -30,10 +47,26 @@ impl Role for Card<Mafia, Doctor> {
             Vec::new()
         }
     }
+
+    fn faction(&self) -> Faction {
+        Faction::Mafia
+    }
+
+    fn value(&self) -> Value {
+        Value::Jack
+    }
 }
 
 impl Role for Card<Mafia, Blank> {
     fn request_user_action(&self, _time_of_day: TimeOfDay, _day: usize) -> Vec<ActionRequest> {
         Vec::new()
+    }
+
+    fn faction(&self) -> Faction {
+        Faction::Mafia
+    }
+
+    fn value(&self) -> Value {
+        Value::V2
     }
 }

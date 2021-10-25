@@ -1,3 +1,4 @@
+use backend::cli::handle_admin;
 use backend::routes;
 use backend::routes::cors;
 use futures::StreamExt;
@@ -26,7 +27,7 @@ async fn main() {
             }
         });
 
-    warp::serve(register.or(user).or(events).with(cors()))
-        .bind(([0, 0, 0, 0], 5069))
-        .await;
+    tokio::spawn(warp::serve(register.or(user).or(events).with(cors())).bind(([0, 0, 0, 0], 5069)));
+
+    handle_admin().await
 }

@@ -1,5 +1,5 @@
 use crate::game::card::{Blank, Card, City, Doctor, Escort, GunShop, Katani, Role};
-use crate::game::{ActionRequest, Lobby, TimeOfDay};
+use crate::game::{ActionRequest, TimeOfDay};
 
 pub const CITY_GUN_SHOP: Card<City, GunShop> = Card::default();
 pub const CITY_KATANI: Card<City, Katani> = Card::default();
@@ -40,5 +40,11 @@ impl Role for Card<City, Doctor> {
         } else {
             Vec::new()
         }
+    }
+}
+
+impl Role for Card<City, Blank> {
+    fn request_user_action(&self, _time_of_day: TimeOfDay, _day: usize) -> Vec<ActionRequest> {
+        Vec::new()
     }
 }

@@ -1,4 +1,5 @@
 #![feature(const_trait_impl)]
+#![feature(const_fn_trait_bound)]
 
 use comms::UserBuffers;
 use game::Game;
@@ -6,6 +7,7 @@ use lazy_static::lazy_static;
 use std::sync::Arc;
 use std::sync::RwLock;
 
+pub mod cli;
 pub mod comms;
 pub mod game;
 pub mod reject;

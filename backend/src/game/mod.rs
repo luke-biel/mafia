@@ -1,9 +1,11 @@
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
 use itertools::Itertools;
 use uuid::Uuid;
 
+use crate::comms::{MessageInBody, Meta, ResponseKind};
 use action_request::ActionRequest;
 
 use crate::game::card::{Faction, Role};
@@ -87,45 +89,79 @@ impl Game {
 
 pub async fn start_game() {
     loop {
-        let (time_of_day, day, top_mafia, mut requests) = unpack_current_game_state();
-
-        push_reoccuring_action_requests(time_of_day, day, top_mafia, &mut requests);
-
-        let mut blocking = requests
+        let requests = construct_requests()
             .into_iter()
             .map(|(id, actions)| actions.into_iter().map(move |action| (id, action)))
-            .flatten()
-            .sorted_by(|(_, a), (_, b)| a.blocking().cmp(&b.blocking()));
+            .flatten();
 
-        let non_blocking: Vec<_> = blocking.take_while_ref(|(_, a)| !a.blocking()).collect();
+        let mut expected_response_count = 0;
+        let mut expected_responses = HashMap::new();
 
-        for (id, action) in non_blocking {
+        for (id, action) in requests {
             let comms = PLAYER_COMMS.read().unwrap();
             let chan = comms.out_send_chan(id).unwrap();
+            match expected_responses.entry(id) {
+                Entry::Vacant(v) => {
+                    v.insert(vec![action.expected_response()]);
+                }
+                Entry::Occupied(mut o) => {
+                    o.get_mut().push(action.expected_response());
+                }
+            }
+            expected_response_count += 1;
             chan.send(action.into_message()).unwrap();
         }
 
-        let mut deltas = Vec::new();
+        println!("{:?}", expected_responses);
 
-        for (id, action) in blocking {
-            let (send, mut recv) = {
-                let comms = PLAYER_COMMS.read().unwrap();
-                let send = comms.out_send_chan(id).unwrap();
-                let recv = comms.in_recv_chan(id).unwrap();
-                (send, recv)
-            };
+        let mut deltas = HashMap::new();
 
-            send.send(action.into_message()).unwrap();
+        let mut recv = {
+            let comms = PLAYER_COMMS.read().unwrap();
+            comms.in_recv_chan().unwrap()
+        };
 
-            let msg = recv.recv().await.unwrap();
+        while deltas.len() < expected_response_count && is_sufficient(&deltas, &expected_responses)
+        {
+            let delta = recv.recv().await.unwrap();
 
-            deltas.push((id, msg));
+            deltas.insert(delta.meta, delta.body);
         }
+
+        println!("{:?}", deltas)
     }
 }
 
-fn push_reoccuring_action_requests(time_of_day: TimeOfDay, day: usize, top_mafia: Option<Uuid>, requests: &mut HashMap<Uuid, Vec<ActionRequest>>) {
-    // Let mafia shoot
+fn is_sufficient(
+    delta: &HashMap<Meta, MessageInBody>,
+    expected: &HashMap<Uuid, Vec<ResponseKind>>,
+) -> bool {
+    delta.keys().all(|item| {
+        expected
+            .get(&item.guid)
+            .map(|exists| exists.contains(&item.response_kind))
+            .unwrap_or(false)
+    })
+}
+
+fn construct_requests() -> HashMap<Uuid, Vec<ActionRequest>> {
+    let read = GAME_STATE.read().unwrap();
+    let time_of_day = read.lobby.time_of_day;
+    let day = read.lobby.day;
+    let alive = read
+        .lobby
+        .roles
+        .iter()
+        .filter(|(_, f)| f.alive)
+        .collect::<Vec<_>>();
+    let top_mafia = read.top_value_living_mafia();
+    let mut requests = HashMap::new();
+
+    for (id, function) in alive {
+        requests.insert(*id, function.card.request_user_action(time_of_day, day));
+    }
+
+    // Allow mafia to shoot
     if time_of_day == TimeOfDay::Night && day != 0 {
         if let Some(top_mafia) = top_mafia {
             let item = requests.get_mut(&top_mafia).unwrap();
@@ -146,24 +182,6 @@ fn push_reoccuring_action_requests(time_of_day: TimeOfDay, day: usize, top_mafia
             .iter_mut()
             .for_each(|(_, actions)| actions.push(ActionRequest::CastVote))
     }
-}
 
-fn unpack_current_game_state() -> (TimeOfDay, usize, Option<Uuid>, HashMap<Uuid, Vec<ActionRequest>>) {
-    let read = GAME_STATE.read().unwrap();
-    let time_of_day = read.lobby.time_of_day;
-    let day = read.lobby.day;
-    let alive = read
-        .lobby
-        .roles
-        .iter()
-        .filter(|(_, f)| f.alive)
-        .collect::<Vec<_>>();
-    let top_mafia = read.top_value_living_mafia();
-    let mut requests = HashMap::new();
-
-    // Every role has it's own actions added here
-    for (id, function) in alive {
-        requests.insert(*id, function.card.request_user_action(time_of_day, day));
-    }
-    (time_of_day, day, top_mafia, requests)
+    requests
 }

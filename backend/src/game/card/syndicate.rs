@@ -1,9 +1,9 @@
 use crate::game::action_request::ActionRequest;
-use crate::game::card::{AngelOfDeath, Blank, Card, Diaboliser, Faction, Role, Syndicate, Value};
+use crate::game::card::{AngelOfDeath, Blank, Card, Diabolizer, Faction, Role, Syndicate, Value};
 use crate::game::TimeOfDay;
 
 pub const SYNDICATE_AOD: Card<Syndicate, AngelOfDeath> = Card::default();
-pub const SYNDICATE_DIABOLISER: Card<Syndicate, Diaboliser> = Card::default();
+pub const SYNDICATE_DIABOLISER: Card<Syndicate, Diabolizer> = Card::default();
 pub const SYNDICATE_BLANK: Card<Syndicate, Blank> = Card::default();
 
 impl Role for Card<Syndicate, AngelOfDeath> {
@@ -24,10 +24,10 @@ impl Role for Card<Syndicate, AngelOfDeath> {
     }
 }
 
-impl Role for Card<Syndicate, Diaboliser> {
+impl Role for Card<Syndicate, Diabolizer> {
     fn request_user_action(&self, time_of_day: TimeOfDay, day: usize) -> Vec<ActionRequest> {
         if time_of_day == TimeOfDay::Night && day == 0 {
-            vec![ActionRequest::SelectDiabolised]
+            vec![ActionRequest::SelectDiabolized]
         } else {
             Vec::new()
         }

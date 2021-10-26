@@ -26,8 +26,13 @@ async fn main() {
                     .into_response(),
             }
         });
+    let lobby = warp::path("lobby")
+        .and(warp::get())
+        .and_then(routes::route_lobby);
 
-    tokio::spawn(warp::serve(register.or(user).or(events).with(cors())).bind(([0, 0, 0, 0], 5069)));
+    tokio::spawn(
+        warp::serve(register.or(user).or(events).or(lobby).with(cors())).bind(([0, 0, 0, 0], 5069)),
+    );
 
     handle_admin().await
 }

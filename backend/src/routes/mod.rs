@@ -1,8 +1,10 @@
 pub mod events;
+pub mod lobby;
 pub mod register;
 pub mod user;
 
 pub use events::route_events;
+pub use lobby::route_lobby;
 pub use register::route_register;
 pub use user::route_user;
 use warp::cors::Cors;

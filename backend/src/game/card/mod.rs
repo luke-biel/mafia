@@ -83,8 +83,8 @@ impl_print_static!(Coquette);
 
 pub struct AngelOfDeath;
 impl_print_static!(AngelOfDeath);
-pub struct Diaboliser;
-impl_print_static!(Diaboliser);
+pub struct Diabolizer;
+impl_print_static!(Diabolizer);
 
 #[derive(Clone)]
 pub struct Card<Suit: PrintStatic, Value: PrintStatic> {

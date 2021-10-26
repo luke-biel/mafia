@@ -7,9 +7,35 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum ResponseKind {
+    CheckGoodBadTarget,
+    CheckCardTarget,
+    HealTarget,
+    BlackmailTarget,
+    FinishTarget,
+    DeathMarkTarget,
+    DiabolizationTarget,
+    ShootTarget,
+    VoteProposal,
+    VoteTarget,
+}
+
 #[derive(Debug, Clone)]
-pub enum MessageIn {
-    Empty
+pub struct MessageIn {
+    pub meta: Meta,
+    pub body: MessageInBody,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Meta {
+    pub guid: Uuid,
+    pub response_kind: ResponseKind,
+}
+
+#[derive(Debug, Clone)]
+pub enum MessageInBody {
+    Empty,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -17,24 +43,17 @@ pub enum MessageOut {
     Action(ActionRequest),
 }
 
-pub struct CommunicationBuffer {
-    pub send_in: Arc<Mutex<broadcast::Sender<MessageIn>>>,
-    pub send_out: Arc<Mutex<broadcast::Sender<MessageOut>>>,
-}
-
-#[derive(Default)]
 pub struct UserBuffers {
-    buffers: HashMap<Uuid, CommunicationBuffer>,
+    buffers: HashMap<Uuid, Arc<Mutex<broadcast::Sender<MessageOut>>>>,
+    in_chan: Arc<Mutex<broadcast::Sender<MessageIn>>>,
 }
 
-impl CommunicationBuffer {
-    pub fn new(
-        send_in: broadcast::Sender<MessageIn>,
-        send_out: broadcast::Sender<MessageOut>,
-    ) -> Self {
+impl Default for UserBuffers {
+    fn default() -> Self {
+        let (in_send, _) = broadcast::channel(1024);
         Self {
-            send_in: Arc::new(Mutex::new(send_in)),
-            send_out: Arc::new(Mutex::new(send_out)),
+            buffers: Default::default(),
+            in_chan: Arc::new(Mutex::new(in_send)),
         }
     }
 }
@@ -44,9 +63,8 @@ impl UserBuffers {
         match self.buffers.entry(id) {
             Entry::Occupied(_) => return Err(Error::InternalError),
             Entry::Vacant(ve) => {
-                let (send_in, _) = broadcast::channel(1024);
                 let (send_out, _) = broadcast::channel(1024);
-                ve.insert(CommunicationBuffer::new(send_in, send_out));
+                ve.insert(Arc::new(Mutex::new(send_out)));
             }
         };
 
@@ -58,7 +76,6 @@ impl UserBuffers {
             .buffers
             .get(&guid)
             .ok_or(Error::UserNotFound)? // TODO: handle missing
-            .send_out
             .lock()
             .unwrap()
             .subscribe())
@@ -69,20 +86,16 @@ impl UserBuffers {
             .buffers
             .get(&guid)
             .ok_or(Error::UserNotFound)? // TODO: handle missing
-            .send_out
             .lock()
             .unwrap()
             .clone())
     }
 
-    pub fn in_recv_chan(&self, guid: Uuid) -> Result<broadcast::Receiver<MessageIn>, Error> {
-        Ok(self
-            .buffers
-            .get(&guid)
-            .ok_or(Error::UserNotFound)?
-            .send_in
-            .lock()
-            .unwrap()
-            .subscribe())
+    pub fn in_recv_chan(&self) -> Result<broadcast::Receiver<MessageIn>, Error> {
+        Ok(self.in_chan.lock().unwrap().subscribe())
+    }
+
+    pub fn in_send_chan(&self) -> Result<broadcast::Sender<MessageIn>, Error> {
+        Ok(self.in_chan.lock().unwrap().clone())
     }
 }

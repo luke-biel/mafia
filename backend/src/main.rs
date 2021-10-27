@@ -1,6 +1,6 @@
 use backend::cli::handle_admin;
 use backend::routes;
-use backend::routes::cors;
+use backend::routes::{cors, MAFIA_GUID_COOKIE_NAME};
 use futures::StreamExt;
 use uuid::Uuid;
 use warp::http::StatusCode;
@@ -29,9 +29,22 @@ async fn main() {
     let lobby = warp::path("lobby")
         .and(warp::get())
         .and_then(routes::route_lobby);
+    let action = warp::path("action")
+        .and(warp::post())
+        .and(warp::cookie::cookie(MAFIA_GUID_COOKIE_NAME))
+        .and(warp::body::json())
+        .and_then(routes::route_action);
 
     tokio::spawn(
-        warp::serve(register.or(user).or(events).or(lobby).with(cors())).bind(([0, 0, 0, 0], 5069)),
+        warp::serve(
+            register
+                .or(user)
+                .or(events)
+                .or(lobby)
+                .or(action)
+                .with(cors()),
+        )
+        .bind(([0, 0, 0, 0], 5069)),
     );
 
     handle_admin().await

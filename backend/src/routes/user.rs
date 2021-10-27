@@ -10,8 +10,6 @@ pub struct UserReplyDTO {
     name: String,
 }
 
-// TODO: Change this route to accept Uuid from header / rename it to "refresh"?
-// TODO: Introduce JWT
 pub async fn route_user(guid: Uuid) -> Result<Response<Body>, Rejection> {
     let gd = GAME_STATE.read().unwrap();
     match gd.find(guid) {

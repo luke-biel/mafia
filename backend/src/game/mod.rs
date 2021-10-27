@@ -118,7 +118,7 @@ pub async fn start_game() {
 
         let mut recv = {
             let comms = PLAYER_COMMS.read().unwrap();
-            comms.in_recv_chan().unwrap()
+            comms.in_recv_chan()
         };
 
         while deltas.len() < expected_response_count && is_sufficient(&deltas, &expected_responses)

@@ -1,5 +1,6 @@
 use crate::game::action_request::ActionRequest;
 use crate::reject::Error;
+use serde::Deserialize;
 use serde::Serialize;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Deserialize)]
 pub enum ResponseKind {
     CheckGoodBadTarget,
     CheckCardTarget,
@@ -33,7 +34,7 @@ pub struct Meta {
     pub response_kind: ResponseKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub enum MessageInBody {
     Empty,
 }
@@ -77,7 +78,7 @@ impl UserBuffers {
             .get(&guid)
             .ok_or(Error::UserNotFound)? // TODO: handle missing
             .lock()
-            .unwrap()
+            .expect("lock buffers")
             .subscribe())
     }
 
@@ -87,15 +88,15 @@ impl UserBuffers {
             .get(&guid)
             .ok_or(Error::UserNotFound)? // TODO: handle missing
             .lock()
-            .unwrap()
+            .expect("lock buffers")
             .clone())
     }
 
-    pub fn in_recv_chan(&self) -> Result<broadcast::Receiver<MessageIn>, Error> {
-        Ok(self.in_chan.lock().unwrap().subscribe())
+    pub fn in_recv_chan(&self) -> broadcast::Receiver<MessageIn> {
+        self.in_chan.lock().expect("lock in_chan").subscribe()
     }
 
-    pub fn in_send_chan(&self) -> Result<broadcast::Sender<MessageIn>, Error> {
-        Ok(self.in_chan.lock().unwrap().clone())
+    pub fn in_send_chan(&self) -> broadcast::Sender<MessageIn> {
+        self.in_chan.lock().expect("lock in_chan").clone()
     }
 }

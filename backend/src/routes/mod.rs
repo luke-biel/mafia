@@ -1,8 +1,10 @@
+pub mod action;
 pub mod events;
 pub mod lobby;
 pub mod register;
 pub mod user;
 
+pub use action::route_action;
 pub use events::route_events;
 pub use lobby::route_lobby;
 pub use register::route_register;

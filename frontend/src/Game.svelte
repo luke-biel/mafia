@@ -1,18 +1,39 @@
-<script>
-    import {events_url, user} from "./stores";
+<script lang="ts">
+    import {eventsUrl, user} from "./stores";
+    import Summary from "./game/Summary.svelte";
+    import History from "./game/History.svelte";
 
-    $: evtStream = new EventSource($events_url);
-    $: evtStream.onmessage = (evt) => {
-        events = [...events, evt.data]
+    enum Tab {
+        SUMMARY,
+        HISTORY,
     }
 
-    let events = []
+    function handleEvent(event) {
+        if (event.Ok) {
 
+        }
+    }
+
+    let tab: Tab = Tab.SUMMARY
+    let evtStream;
+    let history = []
+
+    $: evtStream = new EventSource($eventsUrl);
+    $: evtStream.onmessage = (evt) => {
+        history = [...history, evt.data]
+        handleEvent(evt.data)
+    }
 
 </script>
 
+<nav>
+    <button on:click={() => tab = Tab.SUMMARY}>Summary</button>
+    <button on:click={() => tab = Tab.HISTORY}>History</button>
+</nav>
 <span>User: <b>{$user.name}</b></span>
+{#if tab === Tab.SUMMARY}
+    <Summary />
+{:else if tab === Tab.HISTORY}
+    <History items={history} />
+{/if}
 
-{#each events as ev}
-    <p>{ev}</p>
-{/each}

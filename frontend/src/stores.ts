@@ -1,5 +1,7 @@
 import {derived, Writable, writable} from "svelte/store";
+import {mafiaHost} from "./variables";
 
 export const user: Writable<{ name: any; guid: any }> = writable(null)
-export const host = writable("")
-export const events_url = derived([host, user], ([$h, $u]) => `${$h}/events/${$u.guid}`, "")
+export const eventsUrl = derived([user], ([$u]) => `${mafiaHost}/events/${$u.guid}`, "")
+
+export const gameState = writable({ started: false })

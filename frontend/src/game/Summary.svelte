@@ -1,0 +1,18 @@
+<script lang="ts">
+    import {mafiaHost} from "../variables";
+
+    const lobby = fetch(`${mafiaHost}/lobby`).then((v) => v.json())
+</script>
+
+<div>
+    <p>Lobby:</p>
+    <ul>
+        {#await lobby}
+            Fetching lobby...
+        {:then lobby}
+            {#each lobby.players as user}
+                <li>{user.name}</li>
+            {/each}
+        {/await}
+    </ul>
+</div>

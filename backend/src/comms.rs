@@ -40,8 +40,10 @@ pub enum MessageInBody {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum MessageOut {
     Action(ActionRequest),
+    StartGame,
 }
 
 pub struct UserBuffers {
@@ -70,6 +72,10 @@ impl UserBuffers {
         };
 
         Ok(())
+    }
+
+    pub fn out_send_all(&self) -> impl Iterator<Item = broadcast::Sender<MessageOut>> + '_ {
+        self.buffers.values().map(|arc| arc.lock().unwrap().clone())
     }
 
     pub fn out_recv_chan(&self, guid: Uuid) -> Result<broadcast::Receiver<MessageOut>, Error> {

@@ -1,7 +1,7 @@
 <script lang="ts">
-    import {eventsUrl, user} from "./stores";
-    import Summary from "./game/Summary.svelte";
-    import History from "./game/History.svelte";
+    import {eventsUrl, user} from "../stores";
+    import Summary from "../components/Summary.svelte";
+    import History from "../components/History.svelte";
 
     enum Tab {
         SUMMARY,
@@ -9,9 +9,7 @@
     }
 
     function handleEvent(event) {
-        if (event.Ok) {
-
-        }
+        console.log(event)
     }
 
     let tab: Tab = Tab.SUMMARY

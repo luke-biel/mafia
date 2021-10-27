@@ -1,9 +1,9 @@
 <script lang="ts">
     import {useLocation, useNavigate} from "svelte-navigator";
-    import {user} from "./stores";
-    import {getCookie} from "./cookies";
     import {onMount} from "svelte";
-    import {mafiaHost} from "./variables";
+    import {getCookie} from "../cookies";
+    import {user} from "../stores";
+    import {mafiaHost} from "../variables";
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -26,7 +26,7 @@
         const {guid} = await res.json()
 
         $user = {name, guid}
-        const from = ($location.state && $location.state.from) || "/game";
+        const from = ($location.state && $location.state.from) || "/components";
         navigate(from, {replace: true});
     }
 
@@ -45,7 +45,7 @@
                 const {name} = await res.json()
 
                 $user = {name, guid: guidC}
-                const from = ($location.state && $location.state.from) || "/game";
+                const from = ($location.state && $location.state.from) || "/components";
                 navigate(from, {replace: true});
             }
         }

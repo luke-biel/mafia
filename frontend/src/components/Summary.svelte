@@ -5,7 +5,6 @@
 </script>
 
 <div>
-    <p>Lobby:</p>
     <ul>
         {#await lobby}
             Fetching lobby...

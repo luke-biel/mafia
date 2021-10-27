@@ -26,7 +26,7 @@
         const {guid} = await res.json()
 
         $user = {name, guid}
-        const from = ($location.state && $location.state.from) || "/components";
+        const from = ($location.state && $location.state.from) || "/game";
         navigate(from, {replace: true});
     }
 
@@ -45,7 +45,7 @@
                 const {name} = await res.json()
 
                 $user = {name, guid: guidC}
-                const from = ($location.state && $location.state.from) || "/components";
+                const from = ($location.state && $location.state.from) || "/game";
                 navigate(from, {replace: true});
             }
         }

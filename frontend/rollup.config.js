@@ -69,7 +69,7 @@ export default {
             inlineSources: !production
         }),
         replace({
-            preventAssignment: true,
+            preventAssignment: false,
             MAFIA_HOST: JSON.stringify(process.env.MAFIA_HOST),
         }),
 

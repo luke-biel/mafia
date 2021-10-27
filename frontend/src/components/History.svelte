@@ -1,12 +1,13 @@
 <script lang="ts">
+    import {EventKind} from "../dto/event";
+
     export let items;
 </script>
 
 <div>
-    <p>Historical notifications:</p>
     <ul>
-    {#each items as ev}
-        <li>{ev}</li>
-    {/each}
+        {#each items as ev}
+            <li>{EventKind[ev]}</li>
+        {/each}
     </ul>
 </div>

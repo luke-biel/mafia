@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use itertools::Itertools;
 use uuid::Uuid;
 
-use crate::comms::{MessageInBody, MessageOut, Meta, ResponseKind};
+use crate::comms::{Broadcast, MessageInBody, MessageOut, Meta, ResponseKind};
 use action_request::ActionRequest;
 
 use crate::game::card::{Faction, Role};
@@ -91,7 +91,7 @@ pub async fn start_game() {
     {
         let comms = PLAYER_COMMS.read().unwrap();
         for sender in comms.out_send_all() {
-            sender.send(MessageOut::StartGame).expect("send");
+            sender.send(MessageOut::Broadcast(Broadcast::GameStart)).expect("send");
         }
     }
 

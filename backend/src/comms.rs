@@ -40,10 +40,16 @@ pub enum MessageInBody {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub enum MessageOut {
+    #[serde(rename = "msg")]
     Action(ActionRequest),
-    StartGame,
+    #[serde(rename = "msg")]
+    Broadcast(Broadcast),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub enum Broadcast {
+    GameStart,
 }
 
 pub struct UserBuffers {

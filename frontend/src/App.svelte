@@ -1,8 +1,8 @@
 <script lang="ts">
     import {Route, Router} from "svelte-navigator";
-    import Login from "./Login.svelte";
     import PrivateRoute from "./utils/PrivateRoute.svelte";
-    import Game from "./Game.svelte";
+    import Login from "./routes/Login.svelte";
+    import Game from "./routes/Game.svelte";
 </script>
 
 <Router>

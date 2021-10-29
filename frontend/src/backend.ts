@@ -1,5 +1,6 @@
 import {mafiaHost} from "./variables";
 import {EventKind, EventMsg} from "./dto/event";
+import type {Action} from "./dto/action";
 
 class Backend {
     gameState(): Promise<object> {
@@ -44,7 +45,8 @@ class Backend {
             cache: 'no-cache',
             headers: {
                 'Content-Type': 'application/json'
-            }, body: JSON.stringify({request: EventKind[event.msg]})
+            },
+            body: JSON.stringify({request: EventKind[event.msg]})
         }).then((response) => response.json())
     }
 
@@ -52,6 +54,19 @@ class Backend {
         return new EventSource(`${mafiaHost}/events`, {
             withCredentials: true
         });
+    }
+
+    action(action: Action): Promise<Response> {
+        return fetch(`${mafiaHost}/action`, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'include',
+            cache: 'no-cache',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: action.toJSONString()
+        })
     }
 }
 

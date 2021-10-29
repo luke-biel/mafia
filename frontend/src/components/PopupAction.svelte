@@ -2,6 +2,7 @@
     import {EventKind, EventMsg} from "../dto/event";
     import {createEventDispatcher} from "svelte";
     import backend from "../backend";
+    import {Action} from "../dto/action";
 
     export let event: EventMsg;
 
@@ -23,7 +24,7 @@
     }
 
     const select = (id: String) => {
-        dispatch('select', {id})
+        dispatch('select', Action.from(event, {id}))
     }
 
     const dispatch = createEventDispatcher();

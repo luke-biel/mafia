@@ -36,7 +36,8 @@ pub struct Meta {
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum MessageInBody {
-    Empty,
+    #[serde(rename = "id")]
+    Id(Uuid),
 }
 
 #[derive(Debug, Clone, Serialize)]

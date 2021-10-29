@@ -17,7 +17,12 @@
         popupEvent = event.detail
     }
 
-    const closePopup = (event: CustomEvent) => {
+    const closePopup = async (event: CustomEvent) => {
+        const res = await backend.action(event.detail)
+
+        if (res.ok) {
+            pendingEvents = pendingEvents.filter((v) => v === popupEvent)
+        }
 
         popupEvent = null
     }

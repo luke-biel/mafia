@@ -66,7 +66,8 @@ export default {
         commonjs(),
         typescript({
             sourceMap: !production,
-            inlineSources: !production
+            inlineSources: !production,
+            rootDir: './src'
         }),
         replace({
             preventAssignment: false,

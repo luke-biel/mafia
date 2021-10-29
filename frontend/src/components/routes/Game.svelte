@@ -1,11 +1,11 @@
 <script lang="ts">
-    import {user} from "../stores";
-    import {EventMsg} from "../dto/event";
-    import Summary from "../components/Summary.svelte";
-    import History from "../components/History.svelte";
-    import EventList from "../components/EventList.svelte";
-    import PopupAction from "../components/PopupAction.svelte";
-    import {mafiaHost} from "../variables";
+    import {EventMsg} from "../../dto/event";
+    import {user} from "../../stores";
+    import Summary from "../Summary.svelte";
+    import EventList from "../EventList.svelte";
+    import History from "../History.svelte";
+    import PopupAction from "../PopupAction.svelte";
+    import backend from "../../backend";
 
     enum Tab {
         EVENTS,
@@ -22,9 +22,7 @@
         popupEvent = null
     }
 
-    let evtStream = new EventSource(`${mafiaHost}/events`, {
-        withCredentials: true
-    });
+    let evtStream = backend.events()
     evtStream.onmessage = (evt) => {
         const data = new EventMsg(evt.data)
         history = [...history, data]

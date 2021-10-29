@@ -10,7 +10,7 @@
 <ul>
     {#each items as item}
         <li>
-            <button on:click={() => dispatch('select', item)}>{item.actionTitle() || '---'} ({item.role()})</button>
+            <button on:click={() => dispatch('select', item)}>{item.actionTitle() ?? '---'} ({item.role()})</button>
         </li>
     {/each}
 </ul>

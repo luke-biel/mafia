@@ -1,12 +1,12 @@
 <script lang="ts">
-    import {mafiaHost} from "../variables";
+    import backend from "../backend"
 
-    const lobby = fetch(`${mafiaHost}/game_state`).then((v) => v.json())
+    const gameState = backend.gameState()
 </script>
 
 <div>
     <ul>
-        {#await lobby}
+        {#await gameState}
             Fetching lobby...
         {:then lobby}
             {#each lobby.players as user}

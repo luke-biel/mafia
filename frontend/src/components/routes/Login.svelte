@@ -1,29 +1,18 @@
 <script lang="ts">
     import {useLocation, useNavigate} from "svelte-navigator";
     import {onMount} from "svelte";
-    import {getCookie} from "../cookies";
-    import {user} from "../stores";
-    import {mafiaHost} from "../variables";
+    import {user} from "../../stores";
+    import {getCookie} from "../../cookies";
+    import backend from "../../backend";
 
     const navigate = useNavigate();
     const location = useLocation();
 
     let name;
 
+
     const onLoginSubmit = async () => {
-        const res = await fetch(`${mafiaHost}/register`, {
-            method: 'POST',
-            mode: 'cors',
-            credentials: 'include',
-            cache: 'no-cache',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name,
-            })
-        })
-        const {guid} = await res.json()
+        const {guid} = await backend.register(name)
 
         $user = {name, guid}
         const from = ($location.state && $location.state.from) || "/game";
@@ -34,16 +23,10 @@
         const guidC = getCookie('mafia-guid')
 
         if (guidC) {
-            let res = await fetch(`${mafiaHost}/user/${guidC}`, {
-                method: 'GET',
-                mode: 'cors',
-                credentials: 'include',
-                cache: 'no-cache'
-            })
+            const res = await backend.user(guidC)
 
-            if (res.status == 200) {
-                const {name} = await res.json()
-
+            if (res) {
+                const {name} = res
                 $user = {name, guid: guidC}
                 const from = ($location.state && $location.state.from) || "/game";
                 navigate(from, {replace: true});

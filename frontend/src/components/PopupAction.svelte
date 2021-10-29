@@ -1,7 +1,7 @@
 <script lang="ts">
     import {EventKind, EventMsg} from "../dto/event";
-    import {mafiaHost} from "../variables";
     import {createEventDispatcher} from "svelte";
+    import backend from "../backend";
 
     export let event: EventMsg;
 
@@ -11,20 +11,12 @@
     }
 
     const capabilities = async (): Promise<Array<DisplayEntry>> => {
-        const capabilities = await fetch(`${mafiaHost}/capabilities`, {
-            method: 'POST',
-            mode: 'cors',
-            credentials: 'include',
-            cache: 'no-cache',
-            headers: {
-                'Content-Type': 'application/json'
-            }, body: JSON.stringify({request: EventKind[event.msg]})
-        }).then((response) => response.json())
-        const game_state = await fetch(`${mafiaHost}/game_state`).then((response) => response.json())
+        const capabilities = await backend.capabilities(event)
+        const gameState = await backend.gameState()
 
         let entries = []
         capabilities['players'].forEach((id) => {
-            const player = game_state['players'].find((player) => player.id === id);
+            const player = gameState['players'].find((player) => player.id === id);
             entries.push({internalOption: id, displayName: player?.name ?? '(nobody)'})
         })
         return entries

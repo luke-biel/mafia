@@ -50,12 +50,8 @@ pub async fn route_capabilities(guid: Uuid, action: ActionDTO) -> Result<impl Re
         (Faction::Syndicate, Value::Queen, ActionRequest::SelectDiabolized) => {
             Ok(warp::reply::json(&all_alive_players()))
         }
-        (_, _, ActionRequest::ProposeVote) => {
-            Ok(warp::reply::json(&all_alive_players()))
-        }
-        (_, _, ActionRequest::CastVote) => {
-            Ok(warp::reply::json(&all_alive_players()))
-        }
+        (_, _, ActionRequest::ProposeVote) => Ok(warp::reply::json(&all_alive_players())),
+        (_, _, ActionRequest::CastVote) => Ok(warp::reply::json(&all_alive_players())),
         _ => Err(warp::reject::custom(Error::UnsupportedAction)),
     }
 }

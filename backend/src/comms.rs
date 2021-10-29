@@ -40,7 +40,15 @@ pub enum MessageInBody {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub enum MessageOut {
+#[serde(rename_all = "camelCase")]
+pub struct MessageOut {
+    pub requires_response: bool,
+    #[serde(flatten)]
+    pub msg: Context,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub enum Context {
     #[serde(rename = "msg")]
     Action(ActionRequest),
     #[serde(rename = "msg")]
@@ -81,7 +89,9 @@ impl UserBuffers {
     }
 
     pub fn out_send_all(&self) -> impl Iterator<Item = (Uuid, broadcast::Sender<MessageOut>)> + '_ {
-        self.buffers.iter().map(|(id, arc)| (*id, arc.lock().unwrap().clone()))
+        self.buffers
+            .iter()
+            .map(|(id, arc)| (*id, arc.lock().unwrap().clone()))
     }
 
     pub fn out_recv_chan(&self, guid: Uuid) -> Result<broadcast::Receiver<MessageOut>, Error> {

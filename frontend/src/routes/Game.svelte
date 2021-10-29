@@ -28,7 +28,7 @@
     evtStream.onmessage = (evt) => {
         const data = new EventMsg(evt.data)
         history = [...history, data]
-        if (data.isResponseRequested()) {
+        if (data.requiresResponse) {
             pendingEvents = [...pendingEvents, data];
         }
     }

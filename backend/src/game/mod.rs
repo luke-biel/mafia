@@ -6,7 +6,7 @@ use std::fmt::Debug;
 use itertools::Itertools;
 use uuid::Uuid;
 
-use crate::comms::{Broadcast, MessageInBody, MessageOut, Meta, ResponseKind};
+use crate::comms::{Broadcast, Context, MessageInBody, MessageOut, Meta, ResponseKind};
 use action_request::ActionRequest;
 
 use crate::game::card::{Faction, Role};
@@ -92,9 +92,11 @@ pub async fn start_game() {
     {
         let comms = PLAYER_COMMS.read().unwrap();
         for (id, sender) in comms.out_send_all() {
-            if let Err(_) = sender
-                .send(MessageOut::Broadcast(Broadcast::GameStart)) {
-                eprintln!("failed to send GameStart to {}", id);
+            if let Err(e) = sender.send(MessageOut {
+                requires_response: false,
+                msg: Context::Broadcast(Broadcast::GameStart),
+            }) {
+                eprintln!("failed to send GameStart to {}: {}", id, e);
             }
         }
     }

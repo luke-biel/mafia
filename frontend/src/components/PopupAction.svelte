@@ -10,6 +10,30 @@
         displayName: String;
     }
 
+    const capabilities = async (): Promise<Array<DisplayEntry>> => {
+        const capabilities = await fetch(`${mafiaHost}/capabilities`, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'include',
+            cache: 'no-cache',
+            headers: {
+                'Content-Type': 'application/json'
+            }, body: JSON.stringify({request: EventKind[event.msg]})
+        }).then((response) => response.json())
+        const game_state = await fetch(`${mafiaHost}/game_state`).then((response) => response.json())
+
+        let entries = []
+        capabilities['players'].forEach((id) => {
+            const player = game_state['players'].find((player) => player.id === id);
+            entries.push({internalOption: id, displayName: player?.name ?? '(nobody)'})
+        })
+        return entries
+    }
+
+    const select = (id: String) => {
+        dispatch('select', {id})
+    }
+
     const dispatch = createEventDispatcher();
 
     let popupTitle = 'Unsupported event kind, call your developer';
@@ -37,30 +61,6 @@
             popupTitle = 'Kto zostanie Twoją marionetką po śmierci (diabolistka)?'
             break;
     }
-
-    const capabilities = async (): Promise<Array<DisplayEntry>> => {
-        const capabilities = await fetch(`${mafiaHost}/capabilities`, {
-            method: 'POST',
-            mode: 'cors',
-            credentials: 'include',
-            cache: 'no-cache',
-            headers: {
-                'Content-Type': 'application/json'
-            }, body: JSON.stringify({request: EventKind[event.msg]})
-        }).then((response) => response.json())
-        const game_state = await fetch(`${mafiaHost}/game_state`).then((response) => response.json())
-
-        let entries = []
-        capabilities['players'].forEach((id) => {
-            const player = game_state['players'].find((player) => player.id === id);
-            entries.push({ internalOption: id, displayName: player?.name ?? '(nobody)' })
-        })
-        return entries
-    }
-
-    const select = (id: String) => {
-        dispatch('select', { id })
-    }
 </script>
 
 <div class="mafia-popup-action">
@@ -69,7 +69,9 @@
         {#await options then entries}
             <ul>
                 {#each entries as entry}
-                    <button  on:click={() => select(entry.internalOption)}>{entry.displayName}</button>
+                    <li>
+                        <button on:click={() => select(entry.internalOption)}>{entry.displayName}</button>
+                    </li>
                 {/each}
             </ul>
         {/await}

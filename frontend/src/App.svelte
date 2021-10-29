@@ -23,6 +23,14 @@
 
 <style>
     header {
-        font-size: 2em
+        font-size: 2em;
+        text-align: center;
+    }
+
+    main {
+        width: 80%;
+        padding: 1em;
+        margin: 1em auto;
+        border: 1px dashed black;
     }
 </style>

@@ -1,4 +1,4 @@
-use crate::comms::{MessageOut, ResponseKind};
+use crate::comms::{Context, MessageOut, ResponseKind};
 use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -17,7 +17,10 @@ pub enum ActionRequest {
 
 impl ActionRequest {
     pub fn into_message(self) -> MessageOut {
-        MessageOut::Action(self)
+        MessageOut {
+            requires_response: true,
+            msg: Context::Action(self),
+        }
     }
 
     pub fn expected_response(&self) -> ResponseKind {

@@ -1,7 +1,7 @@
 use crate::comms::{MessageOut, ResponseKind};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, Debug, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum ActionRequest {
     CheckGoodBad,
     CheckCard,

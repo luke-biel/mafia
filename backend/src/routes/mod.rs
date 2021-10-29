@@ -1,12 +1,14 @@
 pub mod action;
+pub mod capabilities;
 pub mod events;
-pub mod lobby;
+pub mod game_state;
 pub mod register;
 pub mod user;
 
 pub use action::route_action;
+pub use capabilities::route_capabilities;
 pub use events::route_events;
-pub use lobby::route_lobby;
+pub use game_state::route_game_state;
 pub use register::route_register;
 pub use user::route_user;
 use warp::cors::Cors;

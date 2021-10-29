@@ -1,7 +1,7 @@
 <script lang="ts">
     import {mafiaHost} from "../variables";
 
-    const lobby = fetch(`${mafiaHost}/lobby`).then((v) => v.json())
+    const lobby = fetch(`${mafiaHost}/game_state`).then((v) => v.json())
 </script>
 
 <div>

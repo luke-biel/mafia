@@ -80,8 +80,8 @@ impl UserBuffers {
         Ok(())
     }
 
-    pub fn out_send_all(&self) -> impl Iterator<Item = broadcast::Sender<MessageOut>> + '_ {
-        self.buffers.values().map(|arc| arc.lock().unwrap().clone())
+    pub fn out_send_all(&self) -> impl Iterator<Item = (Uuid, broadcast::Sender<MessageOut>)> + '_ {
+        self.buffers.iter().map(|(id, arc)| (*id, arc.lock().unwrap().clone()))
     }
 
     pub fn out_recv_chan(&self, guid: Uuid) -> Result<broadcast::Receiver<MessageOut>, Error> {

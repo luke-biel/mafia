@@ -15,20 +15,25 @@ async fn main() {
     let user = warp::path!("user" / Uuid)
         .and(warp::get())
         .and_then(routes::route_user);
-    let events =
-        warp::path!("events" / Uuid).and(warp::get()).map(|guid| {
-            match routes::route_events(guid) {
-                Ok(stream) => {
-                    let stream = stream.map(|msg| warp::sse::Event::default().json_data(msg));
-                    warp::sse::reply(stream).into_response()
-                }
-                Err(_) => warp::reply::with_status(warp::reply::json(&()), StatusCode::NOT_FOUND)
-                    .into_response(),
-            }
-        });
-    let lobby = warp::path("lobby")
+    let events = warp::path("events")
         .and(warp::get())
-        .and_then(routes::route_lobby);
+        .and(warp::cookie::cookie(MAFIA_GUID_COOKIE_NAME))
+        .map(|guid| match routes::route_events(guid) {
+            Ok(stream) => {
+                let stream = stream.map(|msg| warp::sse::Event::default().json_data(msg));
+                warp::sse::reply(stream).into_response()
+            }
+            Err(_) => warp::reply::with_status(warp::reply::json(&()), StatusCode::NOT_FOUND)
+                .into_response(),
+        });
+    let game_state = warp::path("game_state")
+        .and(warp::get())
+        .and_then(routes::route_game_state);
+    let capabilities = warp::path("capabilities")
+        .and(warp::post())
+        .and(warp::cookie::cookie(MAFIA_GUID_COOKIE_NAME))
+        .and(warp::body::json())
+        .and_then(routes::route_capabilities);
     let action = warp::path("action")
         .and(warp::post())
         .and(warp::cookie::cookie(MAFIA_GUID_COOKIE_NAME))
@@ -40,8 +45,9 @@ async fn main() {
             register
                 .or(user)
                 .or(events)
-                .or(lobby)
                 .or(action)
+                .or(game_state)
+                .or(capabilities)
                 .with(cors()),
         )
         .bind(([0, 0, 0, 0], 5069)),

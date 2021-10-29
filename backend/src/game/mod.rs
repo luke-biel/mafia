@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -36,7 +37,7 @@ pub struct Function {
     pub modifiers: RoleModifiers,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize)]
 pub enum TimeOfDay {
     Day,
     Dusk,
@@ -90,8 +91,11 @@ impl Game {
 pub async fn start_game() {
     {
         let comms = PLAYER_COMMS.read().unwrap();
-        for sender in comms.out_send_all() {
-            sender.send(MessageOut::Broadcast(Broadcast::GameStart)).expect("send");
+        for (id, sender) in comms.out_send_all() {
+            if let Err(_) = sender
+                .send(MessageOut::Broadcast(Broadcast::GameStart)) {
+                eprintln!("failed to send GameStart to {}", id);
+            }
         }
     }
 

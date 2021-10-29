@@ -1,9 +1,11 @@
 <script lang="ts">
-    import {eventsUrl, user} from "../stores";
+    import {user} from "../stores";
     import {EventMsg} from "../dto/event";
     import Summary from "../components/Summary.svelte";
     import History from "../components/History.svelte";
     import EventList from "../components/EventList.svelte";
+    import PopupAction from "../components/PopupAction.svelte";
+    import {mafiaHost} from "../variables";
 
     enum Tab {
         EVENTS,
@@ -11,18 +13,29 @@
         HISTORY,
     }
 
-    let tab: Tab = Tab.SUMMARY
-    let evtStream;
-    let history = []
-    let pendingEvents = []
-
-    $: evtStream = new EventSource($eventsUrl);
-    $: evtStream.onmessage = (evt) => {
-        const data = new EventMsg(evt.data)
-        history = [...history, data]
-        pendingEvents = [...pendingEvents, event];
+    const openPopup = (event: CustomEvent) => {
+        popupEvent = event.detail
     }
 
+    const closePopup = (event: CustomEvent) => {
+        popupEvent = null
+    }
+
+    let evtStream = new EventSource(`${mafiaHost}/events`, {
+        withCredentials: true
+    });
+    evtStream.onmessage = (evt) => {
+        const data = new EventMsg(evt.data)
+        history = [...history, data]
+        if (data.isResponseRequested()) {
+            pendingEvents = [...pendingEvents, data];
+        }
+    }
+
+    let tab: Tab = Tab.SUMMARY
+    let history: Array<EventMsg> = []
+    let pendingEvents: Array<EventMsg> = []
+    let popupEvent: EventMsg = null;
 </script>
 
 <nav>
@@ -38,9 +51,12 @@
     <Summary/>
 {:else if tab === Tab.EVENTS}
     <p>Events awaiting your action:</p>
-    <EventList items={pendingEvents} />
+    <EventList items={pendingEvents} on:select={openPopup}/>
 {:else if tab === Tab.HISTORY}
     <p>Historical notifications:</p>
     <History items={history}/>
 {/if}
 
+{#if popupEvent !== null}
+    <PopupAction event={popupEvent} on:select={closePopup}/>
+{/if}

@@ -5,6 +5,7 @@ pub enum Error {
     GameInProgress,
     InternalError,
     UserNotFound,
+    UnsupportedAction,
 }
 
 impl Reject for Error {}

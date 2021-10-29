@@ -38,7 +38,7 @@
             break;
     }
 
-    async function capabilities(): Promise<Array<DisplayEntry>> {
+    const capabilities = async (): Promise<Array<DisplayEntry>> => {
         const capabilities = await fetch(`${mafiaHost}/capabilities`, {
             method: 'POST',
             mode: 'cors',
@@ -58,7 +58,7 @@
         return entries
     }
 
-    function select(id: String) {
+    const select = (id: String) => {
         dispatch('select', { id })
     }
 </script>

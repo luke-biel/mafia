@@ -10,7 +10,7 @@
 
     let name;
 
-    async function onLoginSubmit() {
+    const onLoginSubmit = async () => {
         const res = await fetch(`${mafiaHost}/register`, {
             method: 'POST',
             mode: 'cors',
@@ -30,7 +30,7 @@
         navigate(from, {replace: true});
     }
 
-    async function onAppLoad() {
+    const onAppLoad = async () => {
         const guidC = getCookie('mafia-guid')
 
         if (guidC) {

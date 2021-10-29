@@ -18,6 +18,7 @@
     }
 
     const closePopup = (event: CustomEvent) => {
+
         popupEvent = null
     }
 

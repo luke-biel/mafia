@@ -20,6 +20,7 @@ impl ActionRequest {
         MessageOut {
             requires_response: true,
             msg: Context::Action(self),
+            details: None,
         }
     }
 

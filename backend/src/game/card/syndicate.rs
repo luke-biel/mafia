@@ -1,6 +1,6 @@
 use crate::game::action_request::ActionRequest;
 use crate::game::card::{AngelOfDeath, Blank, Card, Diabolizer, Faction, Role, Syndicate, Value};
-use crate::game::TimeOfDay;
+use crate::game::lobby::TimeOfDay;
 
 pub const SYNDICATE_AOD: Card<Syndicate, AngelOfDeath> = Card::default();
 pub const SYNDICATE_DIABOLISER: Card<Syndicate, Diabolizer> = Card::default();

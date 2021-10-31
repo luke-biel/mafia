@@ -5,7 +5,8 @@ use rustyline::{error::ReadlineError, Editor};
 use std::collections::HashMap;
 
 use crate::game::card::{print_all_roles, ALL_ROLES};
-use crate::game::{start_game, Function, GameModifiers, RoleModifiers, TimeOfDay};
+use crate::game::lobby::{Function, GameModifiers, RoleModifiers, TimeOfDay};
+use crate::game::start_game;
 
 pub async fn handle_admin() {
     let mut rl = Editor::<()>::new();
@@ -60,9 +61,10 @@ pub async fn handle_admin() {
                                 Function {
                                     card: ALL_ROLES[*role],
                                     modifiers: RoleModifiers {
-                                        diabolized: false,
-                                        blackmailed: false,
+                                        diabolised: false,
+                                        blackmailed_by: None,
                                         marked_by_aod: false,
+                                        blackmails: None,
                                     },
                                     alive: true,
                                 },

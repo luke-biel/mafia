@@ -81,5 +81,9 @@ export enum EventKind {
     CastVote,
 
     // Broadcast events
-    GameStart
+    GameStart,
+
+    // Notification events
+    RaisedFromGrave,
+    Killed,
 }

@@ -2,10 +2,11 @@ use std::fmt;
 use std::marker::PhantomData;
 
 use crate::game::action_request::ActionRequest;
-use crate::game::card::city::{CITY_BLANK, CITY_DOCTOR, CITY_ESCORT, CITY_GUN_SHOP, CITY_KATANI};
-use crate::game::card::mafia::{MAFIA_BLACKMAILER, MAFIA_BLANK, MAFIA_COQUETTE, MAFIA_PAVULON};
+use crate::game::card::city::{CITY_BLANK, CITY_DOCTOR, CITY_ESCORT, CITY_KATANI};
+use crate::game::card::mafia::{MAFIA_BLACKMAILER, MAFIA_BLANK};
 use crate::game::card::syndicate::{SYNDICATE_AOD, SYNDICATE_BLANK, SYNDICATE_DIABOLISER};
-use crate::game::TimeOfDay;
+use crate::game::lobby::TimeOfDay;
+use serde::Serialize;
 
 pub mod city;
 pub mod mafia;
@@ -31,7 +32,7 @@ pub trait PrintStatic {
     fn fmt(f: &mut fmt::Formatter<'_>) -> fmt::Result;
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize)]
 pub enum Faction {
     City,
     Mafia,
@@ -92,14 +93,14 @@ pub struct Card<Suit: PrintStatic, Value: PrintStatic> {
 }
 
 pub const ALL_ROLES: &[&(dyn Role + Send + Sync)] = &[
-    &CITY_GUN_SHOP,
+    // &CITY_GUN_SHOP,
     &CITY_KATANI,
     &CITY_ESCORT,
     &CITY_DOCTOR,
     &CITY_BLANK,
     &MAFIA_BLACKMAILER,
-    &MAFIA_COQUETTE,
-    &MAFIA_PAVULON,
+    // &MAFIA_COQUETTE,
+    // &MAFIA_PAVULON,
     &MAFIA_BLANK,
     &SYNDICATE_AOD,
     &SYNDICATE_DIABOLISER,

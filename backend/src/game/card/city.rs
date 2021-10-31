@@ -1,6 +1,6 @@
 use crate::game::action_request::ActionRequest;
 use crate::game::card::{Blank, Card, City, Doctor, Escort, Faction, GunShop, Katani, Role, Value};
-use crate::game::TimeOfDay;
+use crate::game::lobby::TimeOfDay;
 
 pub const CITY_GUN_SHOP: Card<City, GunShop> = Card::default();
 pub const CITY_KATANI: Card<City, Katani> = Card::default();

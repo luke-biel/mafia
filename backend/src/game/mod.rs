@@ -1,4 +1,3 @@
-use serde::Serialize;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -8,58 +7,20 @@ use uuid::Uuid;
 
 use crate::comms::{Broadcast, Context, MessageInBody, MessageOut, Meta, ResponseKind};
 use action_request::ActionRequest;
+use lobby::{Lobby, TimeOfDay};
 
-use crate::game::card::{Faction, Role};
+use crate::game::card::Faction;
 use crate::GAME_STATE;
 use crate::PLAYER_COMMS;
 
 pub mod action_request;
 pub mod card;
+pub mod lobby;
 
 #[derive(Debug, Default)]
 pub struct Game {
     pub players: HashMap<Uuid, String>,
     pub lobby: Lobby,
-}
-
-#[derive(Debug, Default)]
-pub struct Lobby {
-    pub roles: HashMap<Uuid, Function>,
-    pub time_of_day: TimeOfDay,
-    pub day: usize,
-    pub modifiers: GameModifiers,
-}
-
-#[derive(Debug)]
-pub struct Function {
-    pub card: &'static (dyn Role + Send + Sync),
-    pub alive: bool,
-    pub modifiers: RoleModifiers,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Serialize)]
-pub enum TimeOfDay {
-    Day,
-    Dusk,
-    Night,
-}
-
-#[derive(Debug, Default)]
-pub struct GameModifiers {
-    pub is_gun_shop_dead_during_day: bool,
-}
-
-#[derive(Debug, Default)]
-pub struct RoleModifiers {
-    pub diabolized: bool,
-    pub marked_by_aod: bool,
-    pub blackmailed: bool,
-}
-
-impl const Default for TimeOfDay {
-    fn default() -> Self {
-        Self::Night
-    }
 }
 
 impl Game {
@@ -95,6 +56,7 @@ pub async fn start_game() {
             if let Err(e) = sender.send(MessageOut {
                 requires_response: false,
                 msg: Context::Broadcast(Broadcast::GameStart),
+                details: None,
             }) {
                 eprintln!("failed to send GameStart to {}: {}", id, e);
             }
@@ -125,8 +87,6 @@ pub async fn start_game() {
             chan.send(action.into_message()).unwrap();
         }
 
-        println!("{:?}", expected_responses);
-
         let mut deltas = HashMap::new();
 
         let mut recv = {
@@ -141,8 +101,23 @@ pub async fn start_game() {
             deltas.insert(delta.meta, delta.body);
         }
 
-        println!("{:?}", deltas)
+        for (id, message) in calculate_new_game_state(deltas) {
+            let comms = PLAYER_COMMS.read().unwrap();
+            let chan = comms.out_send_chan(id).unwrap();
+            chan.send(message).unwrap();
+        }
     }
+}
+
+fn calculate_new_game_state(deltas: HashMap<Meta, MessageInBody>) -> Vec<(Uuid, MessageOut)> {
+    let mut lobby = {
+        let gd = GAME_STATE.read().unwrap();
+        gd.lobby.clone()
+    };
+    let notifications = lobby.update(deltas);
+    let mut gd = GAME_STATE.write().unwrap();
+    gd.lobby = lobby;
+    notifications
 }
 
 fn is_sufficient(

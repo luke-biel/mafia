@@ -1,4 +1,4 @@
-use crate::game::TimeOfDay;
+use crate::game::lobby::TimeOfDay;
 use crate::GAME_STATE;
 use serde::Serialize;
 use uuid::Uuid;

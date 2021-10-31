@@ -1,6 +1,6 @@
 use crate::game::action_request::ActionRequest;
 use crate::game::card::{Blackmailer, Blank, Card, Coquette, Doctor, Faction, Mafia, Role, Value};
-use crate::game::TimeOfDay;
+use crate::game::lobby::TimeOfDay;
 
 pub const MAFIA_BLACKMAILER: Card<Mafia, Blackmailer> = Card::default();
 pub const MAFIA_COQUETTE: Card<Mafia, Coquette> = Card::default();

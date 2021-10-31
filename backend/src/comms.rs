@@ -1,4 +1,5 @@
 use crate::game::action_request::ActionRequest;
+use crate::game::card::Faction;
 use crate::reject::Error;
 use serde::Deserialize;
 use serde::Serialize;
@@ -8,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Deserialize)]
 pub enum ResponseKind {
     CheckGoodBadTarget,
     CheckCardTarget,
@@ -28,13 +29,13 @@ pub struct MessageIn {
     pub body: MessageInBody,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Meta {
     pub guid: Uuid,
     pub response_kind: ResponseKind,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Copy, Debug, Clone, Deserialize)]
 pub enum MessageInBody {
     #[serde(rename = "id")]
     Id(Uuid),
@@ -46,6 +47,7 @@ pub struct MessageOut {
     pub requires_response: bool,
     #[serde(flatten)]
     pub msg: Context,
+    pub details: Option<Details>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -54,11 +56,31 @@ pub enum Context {
     Action(ActionRequest),
     #[serde(rename = "msg")]
     Broadcast(Broadcast),
+    #[serde(rename = "msg")]
+    Notification(Notification),
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Details {
+    Id(Uuid),
+    Card(String),
+    Faction(Faction),
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub enum Broadcast {
     GameStart,
+    GameEnd,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub enum Notification {
+    Killed,
+    RaisedFromGrave,
+    Blackmailed,
+    CardCheck,
+    FractionCheck,
 }
 
 pub struct UserBuffers {
@@ -121,5 +143,13 @@ impl UserBuffers {
 
     pub fn in_send_chan(&self) -> broadcast::Sender<MessageIn> {
         self.in_chan.lock().expect("lock in_chan").clone()
+    }
+}
+
+impl MessageInBody {
+    pub fn id(&self) -> Uuid {
+        match self {
+            MessageInBody::Id(id) => *id,
+        }
     }
 }

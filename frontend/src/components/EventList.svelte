@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {EventMsg} from "../dto/event";
+    import {actionRequestRole, actionRequestTitle, EventMsg} from "../dto/event";
     import {createEventDispatcher} from "svelte";
 
     export let items: Array<EventMsg>;
@@ -10,7 +10,9 @@
 <ul>
     {#each items as item}
         <li>
-            <button on:click={() => dispatch('select', item)}>{item.actionTitle() ?? '---'} ({item.role()})</button>
+            <button on:click={() => dispatch('select', item)}>{actionRequestTitle(item.msg) ?? '---'}
+                ({actionRequestRole(item.msg)})
+            </button>
         </li>
     {/each}
 </ul>

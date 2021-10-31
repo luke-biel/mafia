@@ -46,7 +46,7 @@ export class Action {
     }
 
     toJSONString(): string {
-        return JSON.stringify({ kind: ResponseKind[this.kind], body: this.body })
+        return JSON.stringify({kind: ResponseKind[this.kind], body: this.body})
     }
 }
 

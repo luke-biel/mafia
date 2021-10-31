@@ -8,6 +8,7 @@ use warp::{Rejection, Reply};
 
 #[derive(Deserialize)]
 pub struct ActionDTO {
+    #[serde(flatten)]
     request: ActionRequest,
 }
 

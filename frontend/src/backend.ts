@@ -46,7 +46,7 @@ class Backend {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({request: EventKind[event.msg]})
+            body: JSON.stringify({msg: EventKind[event.msg]})
         }).then((response) => response.json())
     }
 

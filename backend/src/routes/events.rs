@@ -2,7 +2,7 @@ use futures::{Stream, StreamExt};
 use tokio_stream::wrappers::BroadcastStream;
 use uuid::Uuid;
 
-use crate::comms::MessageOut;
+use crate::comms::outgoing::MessageOut;
 use crate::reject::Error;
 use crate::PLAYER_COMMS;
 

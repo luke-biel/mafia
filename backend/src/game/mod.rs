@@ -5,7 +5,9 @@ use std::fmt::Debug;
 use itertools::Itertools;
 use uuid::Uuid;
 
-use crate::comms::{Broadcast, Context, MessageInBody, MessageOut, Meta, ResponseKind};
+use crate::comms::incoming::ResponseKind;
+use crate::comms::incoming::{MessageInBody, Meta};
+use crate::comms::outgoing::{Broadcast, Context, MessageOut};
 use action_request::ActionRequest;
 use lobby::{Lobby, TimeOfDay};
 
@@ -84,7 +86,7 @@ pub async fn start_game() {
                 }
             }
             expected_response_count += 1;
-            chan.send(action.into_message()).unwrap();
+            chan.send(action.into_message_out()).unwrap();
         }
 
         let mut deltas = HashMap::new();

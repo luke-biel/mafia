@@ -1,88 +1,14 @@
-use crate::game::action_request::ActionRequest;
-use crate::game::card::{Faction, Role};
 use crate::reject::Error;
-use serde::Deserialize;
-use serde::Serialize;
+use incoming::MessageIn;
+use outgoing::MessageOut;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Deserialize)]
-pub enum ResponseKind {
-    CheckGoodBadTarget,
-    CheckCardTarget,
-    HealTarget,
-    BlackmailTarget,
-    FinishTarget,
-    DeathMarkTarget,
-    DiabolizationTarget,
-    ShootTarget,
-    VoteProposal,
-    VoteTarget,
-}
-
-#[derive(Debug, Clone)]
-pub struct MessageIn {
-    pub meta: Meta,
-    pub body: MessageInBody,
-}
-
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Meta {
-    pub guid: Uuid,
-    pub response_kind: ResponseKind,
-}
-
-#[derive(Copy, Debug, Clone, Deserialize)]
-pub enum MessageInBody {
-    #[serde(rename = "id")]
-    Id(Uuid),
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MessageOut {
-    pub requires_response: bool,
-    #[serde(flatten)]
-    pub msg: Context,
-    pub details: Option<Details>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub enum Context {
-    #[serde(rename = "msg")]
-    Action(ActionRequest),
-    #[serde(rename = "msg")]
-    Broadcast(Broadcast),
-    #[serde(rename = "msg")]
-    Notification(Notification),
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Details {
-    Id(Uuid),
-    Card(Role),
-    IsGood(bool),
-    Faction(Faction),
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub enum Broadcast {
-    GameStart,
-    GameEnd,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub enum Notification {
-    Killed,
-    RaisedFromGrave,
-    Blackmailed,
-    CardCheck,
-    FractionCheck,
-}
+pub mod incoming;
+pub mod outgoing;
 
 pub struct UserBuffers {
     buffers: HashMap<Uuid, Arc<Mutex<broadcast::Sender<MessageOut>>>>,
@@ -144,13 +70,5 @@ impl UserBuffers {
 
     pub fn in_send_chan(&self) -> broadcast::Sender<MessageIn> {
         self.in_chan.lock().expect("lock in_chan").clone()
-    }
-}
-
-impl MessageInBody {
-    pub fn id(&self) -> Uuid {
-        match self {
-            MessageInBody::Id(id) => *id,
-        }
     }
 }

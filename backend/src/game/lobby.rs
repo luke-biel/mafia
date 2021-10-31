@@ -1,6 +1,6 @@
-use crate::comms::{
-    Broadcast, Context, Details, MessageInBody, MessageOut, Meta, Notification, ResponseKind,
-};
+use crate::comms::incoming::ResponseKind;
+use crate::comms::incoming::{MessageInBody, Meta};
+use crate::comms::outgoing::{Broadcast, Context, Details, MessageOut, Notification};
 use crate::game::card::{Faction, Role, Value};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -252,7 +252,7 @@ impl Lobby {
                 MessageOut {
                     requires_response: false,
                     msg: Context::Notification(Notification::CardCheck),
-                    details: Some(Details::Card(function.card)),
+                    details: Some(Details::Role(function.card)),
                 },
             ))
         }
@@ -282,7 +282,8 @@ impl Lobby {
 
 #[cfg(test)]
 mod tests {
-    use crate::comms::{MessageInBody, Meta, ResponseKind};
+    use crate::comms::incoming::ResponseKind;
+    use crate::comms::incoming::{MessageInBody, Meta};
     use crate::game::lobby::Lobby;
     use std::collections::HashMap;
     use test_case::test_case;
@@ -378,7 +379,7 @@ mod tests {
 
         let mut s: Vec<_> = Lobby::resolve_mafia_kill_and_heal(&deltas)
             .iter()
-            .map(|(_, body)| body.id().to_string())
+            .map(|id| id.to_string())
             .collect();
         s.sort();
         s

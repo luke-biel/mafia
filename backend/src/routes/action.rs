@@ -1,4 +1,5 @@
-use crate::comms::{MessageIn, MessageInBody, Meta, ResponseKind};
+use crate::comms::incoming::ResponseKind;
+use crate::comms::incoming::{MessageIn, MessageInBody, Meta};
 use crate::reject::Error;
 use crate::PLAYER_COMMS;
 use serde::Deserialize;

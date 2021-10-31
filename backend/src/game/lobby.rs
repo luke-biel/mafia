@@ -1,7 +1,6 @@
 use crate::comms::{
     Broadcast, Context, Details, MessageInBody, MessageOut, Meta, Notification, ResponseKind,
 };
-use crate::game::card::syndicate::SYNDICATE_BLANK;
 use crate::game::card::{Faction, Role, Value};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -17,7 +16,7 @@ pub struct Lobby {
 
 #[derive(Clone, Debug)]
 pub struct Function {
-    pub card: &'static (dyn Role + Send + Sync),
+    pub card: Role,
     pub alive: bool,
     pub modifiers: RoleModifiers,
 }
@@ -116,7 +115,7 @@ impl Lobby {
                         details: None,
                     },
                 ));
-                function.card = &SYNDICATE_BLANK;
+                function.card = Role::SyndicateBlank;
             } else {
                 responses.push((
                     id,
@@ -247,13 +246,13 @@ impl Lobby {
             .iter()
             .filter(|(meta, _)| meta.response_kind == ResponseKind::CheckCardTarget)
         {
-            let function = self.roles.get(&body.id()).expect("checked player");
+            let function = self.roles.get(&body.id()).expect("checked player card");
             responses.push((
                 meta.guid,
                 MessageOut {
                     requires_response: false,
                     msg: Context::Notification(Notification::CardCheck),
-                    details: Some(Details::Card(format!("{:?}", function.card))),
+                    details: Some(Details::Card(function.card)),
                 },
             ))
         }
@@ -262,22 +261,16 @@ impl Lobby {
             .iter()
             .filter(|(meta, _)| meta.response_kind == ResponseKind::CheckGoodBadTarget)
         {
-            let function = self.roles.get(&body.id()).expect("checked player");
+            let function = self.roles.get(&body.id()).expect("checked player good_bad");
             responses.push((
                 meta.guid,
                 MessageOut {
                     requires_response: false,
                     msg: Context::Notification(Notification::CardCheck),
-                    details: Some(Details::Card(
-                        (if function.card.faction() == Faction::City
+                    details: Some(Details::IsGood(
+                        function.card.faction() == Faction::City
                             || (function.card.faction() == Faction::Mafia
-                                && function.card.value() == Value::Queen)
-                        {
-                            "good"
-                        } else {
-                            "bad"
-                        })
-                        .to_string(), // TODO: This is crap
+                                && function.card.value() == Value::Queen),
                     )),
                 },
             ))

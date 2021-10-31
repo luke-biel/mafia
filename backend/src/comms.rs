@@ -1,5 +1,5 @@
 use crate::game::action_request::ActionRequest;
-use crate::game::card::Faction;
+use crate::game::card::{Faction, Role};
 use crate::reject::Error;
 use serde::Deserialize;
 use serde::Serialize;
@@ -64,7 +64,8 @@ pub enum Context {
 #[serde(rename_all = "camelCase")]
 pub enum Details {
     Id(Uuid),
-    Card(String),
+    Card(Role),
+    IsGood(bool),
     Faction(Faction),
 }
 

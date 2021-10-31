@@ -3,8 +3,9 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rustyline::{error::ReadlineError, Editor};
 use std::collections::HashMap;
+use strum::IntoEnumIterator;
 
-use crate::game::card::{print_all_roles, ALL_ROLES};
+use crate::game::card::{print_all_roles, Role};
 use crate::game::lobby::{Function, GameModifiers, RoleModifiers, TimeOfDay};
 use crate::game::start_game;
 
@@ -55,11 +56,13 @@ pub async fn handle_admin() {
                         let mut players: Vec<_> = gd.players.keys().collect();
                         players.shuffle(&mut thread_rng());
                         let mut living = HashMap::with_capacity(players.len());
+                        let all_roles: Vec<Role> = Role::iter().collect();
+
                         for (role, player) in roles.iter().zip(players.iter()) {
                             living.insert(
                                 **player,
                                 Function {
-                                    card: ALL_ROLES[*role],
+                                    card: all_roles[*role],
                                     modifiers: RoleModifiers {
                                         diabolised: false,
                                         blackmailed_by: None,

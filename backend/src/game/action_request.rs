@@ -3,6 +3,7 @@ use crate::comms::outgoing::{Context, MessageOut};
 use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "msg")]
 pub enum ActionRequest {
     CheckGoodBad,
     CheckCard,
@@ -21,7 +22,6 @@ impl ActionRequest {
         MessageOut {
             requires_response: true,
             msg: Context::Action(self),
-            details: None,
         }
     }
 

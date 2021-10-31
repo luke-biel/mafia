@@ -1,6 +1,6 @@
 use crate::comms::incoming::ResponseKind;
 use crate::comms::incoming::{MessageInBody, Meta};
-use crate::comms::outgoing::{Broadcast, Context, Details, MessageOut, Notification};
+use crate::comms::outgoing::{Broadcast, MessageOut, Notification};
 use crate::game::card::{Faction, Role, Value};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -86,16 +86,7 @@ impl Lobby {
             return self
                 .roles
                 .keys()
-                .map(|id| {
-                    (
-                        *id,
-                        MessageOut {
-                            requires_response: false,
-                            msg: Context::Broadcast(Broadcast::GameEnd),
-                            details: Some(Details::Faction(faction)),
-                        },
-                    )
-                })
+                .map(|id| (*id, Broadcast::game_end(faction)))
                 .collect::<Vec<_>>();
         }
 
@@ -107,24 +98,10 @@ impl Lobby {
         for id in killed {
             let function = self.roles.get_mut(&id).expect("killed player should exist");
             if function.modifiers.diabolised {
-                responses.push((
-                    id,
-                    MessageOut {
-                        requires_response: false,
-                        msg: Context::Notification(Notification::RaisedFromGrave),
-                        details: None,
-                    },
-                ));
+                responses.push((id, Notification::raised_from_grave()));
                 function.card = Role::SyndicateBlank;
             } else {
-                responses.push((
-                    id,
-                    MessageOut {
-                        requires_response: false,
-                        msg: Context::Notification(Notification::Killed),
-                        details: None,
-                    },
-                ));
+                responses.push((id, Notification::killed()));
                 function.alive = false;
             }
         }
@@ -224,14 +201,7 @@ impl Lobby {
                 .modifiers
                 .blackmails = Some(body.id());
 
-            responses.push((
-                body.id(),
-                MessageOut {
-                    requires_response: false,
-                    msg: Context::Notification(Notification::Blackmailed),
-                    details: Some(Details::Id(meta.guid)),
-                },
-            ))
+            responses.push((body.id(), Notification::blackmailed(meta.guid)))
         }
         responses.into_iter()
     }
@@ -247,14 +217,7 @@ impl Lobby {
             .filter(|(meta, _)| meta.response_kind == ResponseKind::CheckCardTarget)
         {
             let function = self.roles.get(&body.id()).expect("checked player card");
-            responses.push((
-                meta.guid,
-                MessageOut {
-                    requires_response: false,
-                    msg: Context::Notification(Notification::CardCheck),
-                    details: Some(Details::Role(function.card)),
-                },
-            ))
+            responses.push((meta.guid, Notification::card_check(function.card)))
         }
 
         for (meta, body) in deltas
@@ -264,15 +227,11 @@ impl Lobby {
             let function = self.roles.get(&body.id()).expect("checked player good_bad");
             responses.push((
                 meta.guid,
-                MessageOut {
-                    requires_response: false,
-                    msg: Context::Notification(Notification::CardCheck),
-                    details: Some(Details::IsGood(
-                        function.card.faction() == Faction::City
-                            || (function.card.faction() == Faction::Mafia
-                                && function.card.value() == Value::Queen),
-                    )),
-                },
+                Notification::faction_check(
+                    function.card.faction() == Faction::City
+                        || (function.card.faction() == Faction::Mafia
+                            && function.card.value() == Value::Queen),
+                ),
             ))
         }
 

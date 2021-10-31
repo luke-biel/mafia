@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::comms::incoming::ResponseKind;
 use crate::comms::incoming::{MessageInBody, Meta};
-use crate::comms::outgoing::{Broadcast, Context, MessageOut};
+use crate::comms::outgoing::{Broadcast, MessageOut};
 use action_request::ActionRequest;
 use lobby::{Lobby, TimeOfDay};
 
@@ -55,11 +55,7 @@ pub async fn start_game() {
     {
         let comms = PLAYER_COMMS.read().unwrap();
         for (id, sender) in comms.out_send_all() {
-            if let Err(e) = sender.send(MessageOut {
-                requires_response: false,
-                msg: Context::Broadcast(Broadcast::GameStart),
-                details: None,
-            }) {
+            if let Err(e) = sender.send(Broadcast::game_start()) {
                 eprintln!("failed to send GameStart to {}: {}", id, e);
             }
         }

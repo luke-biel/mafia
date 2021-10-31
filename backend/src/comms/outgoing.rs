@@ -9,52 +9,31 @@ pub struct MessageOut {
     pub requires_response: bool,
     #[serde(flatten)]
     pub msg: Context,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub details: Option<Details>,
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
 pub enum Context {
-    #[serde(rename = "msg")]
     Action(ActionRequest),
-    #[serde(rename = "msg")]
     Broadcast(Broadcast),
-    #[serde(rename = "msg")]
     Notification(Notification),
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Details {
-    Id(Uuid),
-    Role(Role),
-    IsGood(bool),
-    Faction(Faction),
-}
-
-#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "msg", content = "details")]
 pub enum Broadcast {
     GameStart,
-    GameEnd,
+    GameEnd { faction: Faction },
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "msg", content = "details")]
 pub enum Notification {
     Killed,
     RaisedFromGrave,
-    Blackmailed,
-    CardCheck,
-    FactionCheck,
-}
-
-impl MessageOut {
-    pub fn new(requires_response: bool, msg: Context, details: Option<Details>) -> Self {
-        Self {
-            requires_response,
-            msg,
-            details,
-        }
-    }
+    Blackmailed { id: Uuid },
+    CardCheck { card: Role },
+    FactionCheck { good: bool },
 }
 
 impl Broadcast {
@@ -62,15 +41,13 @@ impl Broadcast {
         MessageOut {
             requires_response: false,
             msg: Context::Broadcast(Broadcast::GameStart),
-            details: None,
         }
     }
 
     pub fn game_end(faction: Faction) -> MessageOut {
         MessageOut {
             requires_response: false,
-            msg: Context::Broadcast(Broadcast::GameEnd),
-            details: Some(Details::Faction(faction)),
+            msg: Context::Broadcast(Broadcast::GameEnd { faction }),
         }
     }
 }
@@ -80,7 +57,6 @@ impl Notification {
         MessageOut {
             requires_response: false,
             msg: Context::Notification(Notification::Killed),
-            details: None,
         }
     }
 
@@ -88,31 +64,27 @@ impl Notification {
         MessageOut {
             requires_response: false,
             msg: Context::Notification(Notification::RaisedFromGrave),
-            details: None,
         }
     }
 
-    pub fn blackmailed(by_who: Uuid) -> MessageOut {
+    pub fn blackmailed(id: Uuid) -> MessageOut {
         MessageOut {
             requires_response: false,
-            msg: Context::Notification(Notification::Blackmailed),
-            details: Some(Details::Id(by_who)),
+            msg: Context::Notification(Notification::Blackmailed { id }),
         }
     }
 
-    pub fn card_check(role: Role) -> MessageOut {
+    pub fn card_check(card: Role) -> MessageOut {
         MessageOut {
             requires_response: false,
-            msg: Context::Notification(Notification::CardCheck),
-            details: Some(Details::Role(role)),
+            msg: Context::Notification(Notification::CardCheck { card }),
         }
     }
 
-    pub fn faction_check(faction: Faction) -> MessageOut {
+    pub fn faction_check(good: bool) -> MessageOut {
         MessageOut {
             requires_response: false,
-            msg: Context::Notification(Notification::FactionCheck),
-            details: Some(Details::Faction(faction)),
+            msg: Context::Notification(Notification::FactionCheck { good }),
         }
     }
 }
@@ -132,8 +104,8 @@ mod tests {
     #[test_case(Notification::killed()                           => r#"{"requiresResponse":false,"msg":"Killed"}"#)]
     #[test_case(Notification::raised_from_grave()                => r#"{"requiresResponse":false,"msg":"RaisedFromGrave"}"#)]
     #[test_case(Notification::blackmailed(Uuid::nil())           => r#"{"requiresResponse":false,"msg":"Blackmailed","details":{"id":"00000000-0000-0000-0000-000000000000"}}"#)]
-    #[test_case(Notification::card_check(Role::MafiaBlackmailer) => r#"{"requiresResponse":false,"msg":"CardCheck","details":{"role":"MafiaBlackmailer"}}"#)]
-    #[test_case(Notification::faction_check(Faction::Mafia)      => r#"{"requiresResponse":false,"msg":"FactionCheck","details":{"faction":"Mafia"}}"#)]
+    #[test_case(Notification::card_check(Role::MafiaBlackmailer) => r#"{"requiresResponse":false,"msg":"CardCheck","details":{"card":"MafiaBlackmailer"}}"#)]
+    #[test_case(Notification::faction_check(true)                => r#"{"requiresResponse":false,"msg":"FactionCheck","details":{"good":true}}"#)]
     fn serializes_message_out_to_expected_json(message: MessageOut) -> String {
         serde_json::to_string(&message).unwrap()
     }

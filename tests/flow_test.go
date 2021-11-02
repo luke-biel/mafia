@@ -34,5 +34,15 @@ func TestBlankFlow(t *testing.T) {
 		Id:       p3,
 		VoteKind: Kill,
 	})
-}
 
+	Action(p2, ActionDTO{
+		Kind:     VoteProposal,
+		Id:       p3,
+		VoteKind: Check,
+	})
+
+	Action(p3, ActionDTO{
+		Kind: VoteProposal,
+		Skip: true,
+	})
+}

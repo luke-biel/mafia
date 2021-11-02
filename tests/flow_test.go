@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/r3labs/sse"
 	"testing"
-	"github.com/mafia/utils"
 )
 
 func TestBlankFlow(t *testing.T) {

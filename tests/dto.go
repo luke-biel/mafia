@@ -1,4 +1,4 @@
-package utils
+package main
 
 type RegisterDTO struct {
 	Guid string `json:"guid"`

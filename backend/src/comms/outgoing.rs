@@ -1,5 +1,6 @@
 use crate::game::action_request::ActionRequest;
 use crate::game::card::{Faction, Role};
+use crate::game::lobby::TimeOfDay;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -20,10 +21,11 @@ pub enum Context {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "msg", content = "details")]
+#[serde(tag = "msg", content = "details", rename_all = "camelCase")]
 pub enum Broadcast {
     GameStart,
     GameEnd { faction: Faction },
+    TimePasses { day: usize, time_of_day: TimeOfDay },
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -48,6 +50,13 @@ impl Broadcast {
         MessageOut {
             requires_response: false,
             msg: Context::Broadcast(Broadcast::GameEnd { faction }),
+        }
+    }
+
+    pub fn time_passes(day: usize, time_of_day: TimeOfDay) -> MessageOut {
+        MessageOut {
+            requires_response: false,
+            msg: Context::Broadcast(Broadcast::TimePasses { day, time_of_day }),
         }
     }
 }

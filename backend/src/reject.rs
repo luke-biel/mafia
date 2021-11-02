@@ -6,6 +6,8 @@ pub enum Error {
     InternalError,
     UserNotFound,
     UnsupportedAction,
+
+    AdminError(&'static str),
 }
 
 impl Reject for Error {}

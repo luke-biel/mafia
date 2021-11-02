@@ -1,4 +1,5 @@
 pub mod action;
+pub mod admin;
 pub mod capabilities;
 pub mod events;
 pub mod game_state;
@@ -6,6 +7,7 @@ pub mod register;
 pub mod user;
 
 pub use action::route_action;
+pub use admin::route_admin;
 pub use capabilities::route_capabilities;
 pub use events::route_events;
 pub use game_state::route_game_state;

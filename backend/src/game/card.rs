@@ -1,5 +1,6 @@
 use crate::game::action_request::ActionRequest;
 use crate::game::lobby::TimeOfDay;
+use itertools::Itertools;
 use serde::Serialize;
 use strum::IntoEnumIterator;
 
@@ -146,8 +147,9 @@ impl Role {
     }
 }
 
-pub fn print_all_roles() {
-    for (i, role) in Role::iter().enumerate() {
-        println!("{}) {:?}", i, role)
-    }
+pub fn print_all_roles() -> String {
+    Role::iter()
+        .enumerate()
+        .map(|(i, role)| format!("{}) {:?}", i, role))
+        .join("\n")
 }

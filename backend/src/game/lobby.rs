@@ -82,14 +82,6 @@ impl Lobby {
     }
 
     pub fn update(&mut self, deltas: HashMap<Meta, MessageInBody>) -> Vec<(Uuid, MessageOut)> {
-        if let Some(faction) = self.check_victory() {
-            return self
-                .roles
-                .keys()
-                .map(|id| (*id, Broadcast::game_end(faction)))
-                .collect::<Vec<_>>();
-        }
-
         let mut killed = Self::resolve_mafia_kill_and_heal(&deltas);
         killed.extend(self.resolve_aod(&deltas));
         killed.extend(self.resolve_death_of_blackmailer(killed.clone().into_iter()));
@@ -111,7 +103,21 @@ impl Lobby {
 
         self.day += self.time_of_day.advance();
 
-        responses
+        for (id, _) in self.roles.iter().filter(|(_, fun)| fun.alive) {
+            responses.push((*id, Broadcast::time_passes(self.day, self.time_of_day)))
+        }
+
+        if let Some(faction) = self.check_victory() {
+            let mut all = self
+                .roles
+                .keys()
+                .map(|id| (*id, Broadcast::game_end(faction)))
+                .collect::<Vec<_>>();
+            all.extend(responses.into_iter());
+            all
+        } else {
+            responses
+        }
     }
 
     fn resolve_mafia_kill_and_heal(deltas: &HashMap<Meta, MessageInBody>) -> Vec<Uuid> {

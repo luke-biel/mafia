@@ -1,5 +1,5 @@
 use crate::game::action_request::ActionRequest;
-use crate::game::card::{Faction, Value};
+use crate::game::card::{Faction, Role};
 use crate::reject::Error;
 use crate::GAME_STATE;
 use serde::{Deserialize, Serialize};
@@ -18,83 +18,68 @@ pub struct CapabilitiesResponseDTO {
 }
 
 pub async fn route_capabilities(guid: Uuid, action: ActionDTO) -> Result<impl Reply, Rejection> {
-    let card = {
+    let role = {
         let read = GAME_STATE.read().unwrap();
         read.lobby
             .roles
             .get(&guid)
             .ok_or_else(|| warp::reject::custom(Error::UserNotFound))?
-            .card
+            .clone()
     };
-    match (card.faction(), card.value(), action.request) {
-        (Faction::City, Value::King, ActionRequest::CheckGoodBad) => {
-            Ok(warp::reply::json(&alive_players_except_me(guid)))
+    let mut players = match (role.card, action.request) {
+        (Role::CityKatani, ActionRequest::CheckGoodBad) => alive_players_except_me(guid),
+        (Role::CityEscort, ActionRequest::CheckCard) => alive_players_except_me(guid),
+        (Role::CityDoctor, ActionRequest::Heal) => all_alive_players(),
+        (Role::MafiaBlackmailer, ActionRequest::SelectBlackmailed) => alive_players_except_mafia(),
+        (Role::MafiaBlank, ActionRequest::FinishPatient) => alive_players_except_mafia(),
+        (_, ActionRequest::Shoot) if role.card.faction() == Faction::Mafia => {
+            alive_players_except_mafia()
         }
-        (Faction::City, Value::Queen, ActionRequest::CheckCard) => {
-            Ok(warp::reply::json(&alive_players_except_me(guid)))
+        (Role::SyndicateAod, ActionRequest::MarkForDeath) => all_alive_players(),
+        (Role::SyndicateDiaboliser, ActionRequest::SelectDiabolized) => all_alive_players(),
+        (_, ActionRequest::ProposeVote) => all_alive_players(),
+        (_, ActionRequest::CastVote) => all_alive_players(),
+        _ => return Err(warp::reject::custom(Error::UnsupportedAction)),
+    };
+
+    if let Some(blackmailer) = role.modifiers.blackmailed_by {
+        if let Ok(idx) = players.binary_search(&blackmailer) {
+            players.remove(idx);
         }
-        (Faction::City, Value::Jack, ActionRequest::Heal) => {
-            Ok(warp::reply::json(&all_alive_players()))
-        }
-        (Faction::Mafia, Value::King, ActionRequest::SelectBlackmailed) => {
-            Ok(warp::reply::json(&alive_players_except_mafia()))
-        }
-        (Faction::Mafia, Value::Jack, ActionRequest::FinishPatient) => {
-            Ok(warp::reply::json(&alive_players_except_mafia()))
-        }
-        (Faction::Mafia, _, ActionRequest::Shoot) => {
-            Ok(warp::reply::json(&alive_players_except_mafia()))
-        }
-        (Faction::Syndicate, Value::King, ActionRequest::MarkForDeath) => {
-            Ok(warp::reply::json(&all_alive_players()))
-        }
-        (Faction::Syndicate, Value::Queen, ActionRequest::SelectDiabolized) => {
-            Ok(warp::reply::json(&all_alive_players()))
-        }
-        (_, _, ActionRequest::ProposeVote) => Ok(warp::reply::json(&all_alive_players())),
-        (_, _, ActionRequest::CastVote) => Ok(warp::reply::json(&all_alive_players())),
-        _ => Err(warp::reject::custom(Error::UnsupportedAction)),
     }
+
+    Ok(warp::reply::json(&CapabilitiesResponseDTO { players }))
 }
 
-fn alive_players_except_me(guid: Uuid) -> CapabilitiesResponseDTO {
+fn alive_players_except_me(guid: Uuid) -> Vec<Uuid> {
     let read = GAME_STATE.read().unwrap();
-    CapabilitiesResponseDTO {
-        players: read
-            .lobby
-            .roles
-            .iter()
-            .filter(|(key, value)| **key != guid && value.alive)
-            .map(|(key, _)| key)
-            .cloned()
-            .collect(),
-    }
+    read.lobby
+        .roles
+        .iter()
+        .filter(|(key, value)| **key != guid && value.alive)
+        .map(|(key, _)| key)
+        .cloned()
+        .collect()
 }
 
-fn all_alive_players() -> CapabilitiesResponseDTO {
+fn all_alive_players() -> Vec<Uuid> {
     let read = GAME_STATE.read().unwrap();
-    CapabilitiesResponseDTO {
-        players: read
-            .lobby
-            .roles
-            .iter()
-            .filter(|(_, value)| value.alive)
-            .map(|(key, _)| key)
-            .cloned()
-            .collect(),
-    }
+    read.lobby
+        .roles
+        .iter()
+        .filter(|(_, value)| value.alive)
+        .map(|(key, _)| key)
+        .cloned()
+        .collect()
 }
 
-fn alive_players_except_mafia() -> CapabilitiesResponseDTO {
+fn alive_players_except_mafia() -> Vec<Uuid> {
     let read = GAME_STATE.read().unwrap();
-    CapabilitiesResponseDTO {
-        players: read
-            .lobby
-            .roles
-            .iter()
-            .filter(|(_, value)| value.card.faction() != Faction::Mafia)
-            .map(|(key, _)| key)
-            .cloned()
-            .collect(),
-    }
+    read.lobby
+        .roles
+        .iter()
+        .filter(|(_, value)| value.card.faction() != Faction::Mafia)
+        .map(|(key, _)| key)
+        .cloned()
+        .collect()
 }

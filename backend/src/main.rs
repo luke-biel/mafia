@@ -39,6 +39,10 @@ async fn main() {
         .and(warp::cookie::cookie(MAFIA_GUID_COOKIE_NAME))
         .and(warp::body::json())
         .and_then(routes::route_action);
+    let admin = warp::path("admin")
+        .and(warp::post())
+        .and(warp::body::bytes())
+        .and_then(routes::route_admin);
 
     tokio::spawn(
         warp::serve(
@@ -48,6 +52,7 @@ async fn main() {
                 .or(action)
                 .or(game_state)
                 .or(capabilities)
+                .or(admin)
                 .with(cors()),
         )
         .bind(([0, 0, 0, 0], 5069)),

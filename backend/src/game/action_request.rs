@@ -26,37 +26,22 @@ impl ActionRequest {
     }
 
     pub fn is_sufficient(&self, response: &ActionResponse) -> bool {
+        use ActionRequest::*;
+        use ActionResponse::*;
+
         matches!(
             (self, response),
-            (
-                ActionRequest::CheckGoodBad,
-                ActionResponse::CheckGoodBadTarget { .. }
-            ) | (
-                ActionRequest::CheckCard,
-                ActionResponse::CheckCardTarget { .. }
-            ) | (ActionRequest::Heal, ActionResponse::HealTarget { .. })
-                | (
-                    ActionRequest::SelectBlackmailed,
-                    ActionResponse::BlackmailTarget { .. }
-                )
-                | (
-                    ActionRequest::FinishPatient,
-                    ActionResponse::FinishTarget { .. }
-                )
-                | (
-                    ActionRequest::MarkForDeath,
-                    ActionResponse::DeathMarkTarget { .. }
-                )
-                | (
-                    ActionRequest::SelectDiabolized,
-                    ActionResponse::DiabolizationTarget { .. }
-                )
-                | (ActionRequest::Shoot, ActionResponse::ShootTarget { .. })
-                | (
-                    ActionRequest::ProposeVote,
-                    ActionResponse::VoteProposal { .. }
-                )
-                | (ActionRequest::CastVote, ActionResponse::VoteTarget { .. })
+            (CheckGoodBad, CheckGoodBadTarget { .. })
+                | (CheckCard, CheckCardTarget { .. })
+                | (Heal, HealTarget { .. })
+                | (SelectBlackmailed, BlackmailTarget { .. })
+                | (FinishPatient, FinishTarget { .. })
+                | (MarkForDeath, DeathMarkTarget { .. })
+                | (SelectDiabolized, DiabolizationTarget { .. })
+                | (Shoot, ShootTarget { .. })
+                | (ProposeVote, VoteProposal { .. })
+                | (ProposeVote, VoteSkip)
+                | (CastVote, VoteTarget { .. })
         )
     }
 }

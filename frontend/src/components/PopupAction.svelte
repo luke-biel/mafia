@@ -16,7 +16,8 @@
         const gameState = await backend.gameState()
 
         let entries = []
-        capabilities['players'].forEach((id) => {
+        capabilities['players'].forEach(cap => {
+            const id = cap['id']
             const player = gameState['players'].find((player) => player.id === id);
             entries.push({internalOption: id, displayName: player?.name ?? '(nobody)'})
         })

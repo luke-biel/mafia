@@ -1,3 +1,4 @@
+use crate::comms::incoming::VoteKind;
 use crate::game::action_request::ActionRequest;
 use crate::game::card::{Faction, Role};
 use crate::reject::Error;
@@ -15,7 +16,14 @@ pub struct ActionDTO {
 
 #[derive(Serialize)]
 pub struct CapabilitiesResponseDTO {
-    players: Vec<Uuid>,
+    players: Vec<Player>,
+}
+
+#[derive(Default, Serialize)]
+pub struct Player {
+    id: Uuid,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    note: Option<VoteKind>, // TODO: This is crap
 }
 
 pub async fn route_capabilities(guid: Uuid, action: ActionDTO) -> Result<impl Reply, Rejection> {
@@ -39,12 +47,12 @@ pub async fn route_capabilities(guid: Uuid, action: ActionDTO) -> Result<impl Re
         (Role::SyndicateAod, ActionRequest::MarkForDeath) => all_alive_players(),
         (Role::SyndicateDiaboliser, ActionRequest::SelectDiabolized) => all_alive_players(),
         (_, ActionRequest::ProposeVote) => all_alive_players(),
-        (_, ActionRequest::CastVote) => all_alive_players(),
+        (_, ActionRequest::CastVote) => proposed_votes(),
         _ => return Err(warp::reject::custom(Error::UnsupportedAction)),
     };
 
     if let Some(blackmailer) = role.modifiers.blackmailed_by {
-        if let Some((idx, _)) = players.iter().find_position(|item| **item == blackmailer) {
+        if let Some((idx, _)) = players.iter().find_position(|item| item.id == blackmailer) {
             players.remove(idx);
         }
     }
@@ -52,35 +60,53 @@ pub async fn route_capabilities(guid: Uuid, action: ActionDTO) -> Result<impl Re
     Ok(warp::reply::json(&CapabilitiesResponseDTO { players }))
 }
 
-fn alive_players_except_me(guid: Uuid) -> Vec<Uuid> {
+fn alive_players_except_me(guid: Uuid) -> Vec<Player> {
     let read = GAME_STATE.read().unwrap();
     read.lobby
         .roles
         .iter()
         .filter(|(key, value)| **key != guid && value.alive)
-        .map(|(key, _)| key)
-        .cloned()
+        .map(|(key, _)| Player {
+            id: *key,
+            ..Default::default()
+        })
         .collect()
 }
 
-fn all_alive_players() -> Vec<Uuid> {
+fn proposed_votes() -> Vec<Player> {
+    let read = GAME_STATE.read().unwrap();
+    read.lobby
+        .vote_proposals
+        .iter()
+        .map(|(key, val)| Player {
+            id: *key,
+            note: Some(*val),
+        })
+        .collect()
+}
+
+fn all_alive_players() -> Vec<Player> {
     let read = GAME_STATE.read().unwrap();
     read.lobby
         .roles
         .iter()
         .filter(|(_, value)| value.alive)
-        .map(|(key, _)| key)
-        .cloned()
+        .map(|(key, _)| Player {
+            id: *key,
+            ..Default::default()
+        })
         .collect()
 }
 
-fn alive_players_except_mafia() -> Vec<Uuid> {
+fn alive_players_except_mafia() -> Vec<Player> {
     let read = GAME_STATE.read().unwrap();
     read.lobby
         .roles
         .iter()
         .filter(|(_, value)| value.card.faction() != Faction::Mafia)
-        .map(|(key, _)| key)
-        .cloned()
+        .map(|(key, _)| Player {
+            id: *key,
+            ..Default::default()
+        })
         .collect()
 }

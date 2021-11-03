@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -13,7 +13,7 @@ pub struct Meta {
     pub guid: Uuid,
 }
 
-#[derive(Copy, Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Copy, Debug, Clone, Deserialize, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum VoteKind {
     Check,
@@ -52,6 +52,7 @@ pub enum ActionResponse {
         id: Uuid,
         vote_kind: VoteKind,
     },
+    VoteSkip,
     #[serde(rename_all = "camelCase")]
     VoteTarget {
         id: Uuid,
@@ -60,7 +61,7 @@ pub enum ActionResponse {
 }
 
 impl ActionResponse {
-    pub fn id(&self) -> Uuid {
+    pub fn target_id(&self) -> Uuid {
         match self {
             ActionResponse::CheckGoodBadTarget { id }
             | ActionResponse::CheckCardTarget { id }
@@ -72,13 +73,14 @@ impl ActionResponse {
             | ActionResponse::ShootTarget { id }
             | ActionResponse::VoteProposal { id, .. }
             | ActionResponse::VoteTarget { id, .. } => *id,
+            ActionResponse::VoteSkip => unimplemented!(),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::comms::incoming::ActionResponse;
+    use crate::comms::incoming::{ActionResponse, VoteKind};
     use test_case::test_case;
 
     macro_rules! parse {
@@ -86,15 +88,6 @@ mod tests {
             $e.parse().unwrap()
         };
     }
-
-    // HealTarget,
-    // BlackmailTarget,
-    // FinishTarget,
-    // DeathMarkTarget,
-    // DiabolizationTarget,
-    // ShootTarget,
-    // VoteProposal,
-    // VoteTarget,
 
     #[test_case(
         r#"{"kind":"CheckGoodBadTarget","details":{"id":"2d3c34ae-36e6-410d-823c-2884c2127134"}}"# =>
@@ -107,6 +100,18 @@ mod tests {
     #[test_case(
         r#"{"kind":"HealTarget","details":{"id":"27224456-1f10-4728-a71e-df068fc10e78"}}"# =>
         ActionResponse::HealTarget { id: parse!("27224456-1f10-4728-a71e-df068fc10e78") }
+    )]
+    #[test_case(
+        r#"{"kind":"VoteTarget","details":{"id":"27224456-1f10-4728-a71e-df068fc10e78","voteKind":"kill"}}"# =>
+        ActionResponse::VoteTarget { id: parse!("27224456-1f10-4728-a71e-df068fc10e78"), vote_kind: VoteKind::Kill }
+    )]
+    #[test_case(
+        r#"{"kind":"VoteProposal","details":{"id":"27224456-1f10-4728-a71e-df068fc10e78","voteKind":"check"}}"# =>
+        ActionResponse::VoteProposal { id: parse!("27224456-1f10-4728-a71e-df068fc10e78"), vote_kind: VoteKind::Check }
+    )]
+    #[test_case(
+        r#"{"kind":"VoteSkip"}"# =>
+        ActionResponse::VoteSkip
     )]
     fn deserializes_jsons_with_expected_format(s: &str) -> ActionResponse {
         serde_json::from_str(s).unwrap()

@@ -1,7 +1,8 @@
-use crate::comms::incoming::ActionResponse;
 use crate::comms::incoming::Meta;
+use crate::comms::incoming::{ActionResponse, VoteKind};
 use crate::comms::outgoing::{Broadcast, MessageOut, Notification};
 use crate::game::card::{Faction, Role, Value};
+use itertools::Itertools;
 use serde::Serialize;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -12,6 +13,7 @@ pub struct Lobby {
     pub time_of_day: TimeOfDay,
     pub day: usize,
     pub modifiers: GameModifiers,
+    pub vote_proposals: Vec<(Uuid, VoteKind)>,
 }
 
 #[derive(Clone, Debug)]
@@ -101,6 +103,8 @@ impl Lobby {
         responses.extend(self.resolve_blackmailing(&deltas));
         responses.extend(self.resolve_checking(&deltas));
 
+        self.resolve_vote_proposals(&deltas);
+
         self.day += self.time_of_day.advance();
 
         for (id, _) in self.roles.iter().filter(|(_, fun)| fun.alive) {
@@ -120,6 +124,18 @@ impl Lobby {
         }
     }
 
+    fn resolve_vote_proposals(&mut self, deltas: &HashMap<Meta, ActionResponse>) {
+        let vote_proposals: Vec<_> = deltas
+            .iter()
+            .filter_map(|(_, val)| match val {
+                ActionResponse::VoteProposal { id, vote_kind } => Some((*id, *vote_kind)),
+                _ => None,
+            })
+            .unique()
+            .collect();
+        self.vote_proposals = vote_proposals;
+    }
+
     fn resolve_mafia_kill_and_heal(deltas: &HashMap<Meta, ActionResponse>) -> Vec<Uuid> {
         let pavulon_targets = deltas
             .iter()
@@ -131,7 +147,7 @@ impl Lobby {
             .filter(|(_, h_body)| {
                 !pavulon_targets
                     .iter()
-                    .any(|(_, p_body)| h_body.id() == p_body.id())
+                    .any(|(_, p_body)| h_body.target_id() == p_body.target_id())
             })
             .collect::<Vec<_>>();
 
@@ -141,9 +157,9 @@ impl Lobby {
             .filter(|(_, k_body)| {
                 !real_heals
                     .iter()
-                    .any(|(_, h_body)| k_body.id() == h_body.id())
+                    .any(|(_, h_body)| k_body.target_id() == h_body.target_id())
             })
-            .map(|(_, body)| body.id())
+            .map(|(_, body)| body.target_id())
             .collect()
     }
 
@@ -156,7 +172,7 @@ impl Lobby {
             .iter()
             .filter(|(_, val)| matches!(val, ActionResponse::DeathMarkTarget { .. }))
         {
-            let id = body.id();
+            let id = body.target_id();
 
             let player = self
                 .roles
@@ -200,7 +216,7 @@ impl Lobby {
             .filter(|(_, val)| matches!(val, ActionResponse::BlackmailTarget { .. }))
         {
             self.roles
-                .get_mut(&body.id())
+                .get_mut(&body.target_id())
                 .expect("blackmailed missing")
                 .modifiers
                 .blackmailed_by = Some(meta.guid);
@@ -208,9 +224,9 @@ impl Lobby {
                 .get_mut(&meta.guid)
                 .expect("blackmailer missing")
                 .modifiers
-                .blackmails = Some(body.id());
+                .blackmails = Some(body.target_id());
 
-            responses.push((body.id(), Notification::blackmailed(meta.guid)))
+            responses.push((body.target_id(), Notification::blackmailed(meta.guid)))
         }
         responses.into_iter()
     }
@@ -225,7 +241,10 @@ impl Lobby {
             .iter()
             .filter(|(_, val)| matches!(val, ActionResponse::CheckCardTarget { .. }))
         {
-            let function = self.roles.get(&body.id()).expect("checked player card");
+            let function = self
+                .roles
+                .get(&body.target_id())
+                .expect("checked player card");
             responses.push((meta.guid, Notification::card_check(function.card)))
         }
 
@@ -233,7 +252,10 @@ impl Lobby {
             .iter()
             .filter(|(_, val)| matches!(val, ActionResponse::CheckGoodBadTarget { .. }))
         {
-            let function = self.roles.get(&body.id()).expect("checked player good_bad");
+            let function = self
+                .roles
+                .get(&body.target_id())
+                .expect("checked player good_bad");
             responses.push((
                 meta.guid,
                 Notification::faction_check(

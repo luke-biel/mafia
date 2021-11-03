@@ -2,6 +2,7 @@ use crate::game::action_request::ActionRequest;
 use crate::game::card::{Faction, Role};
 use crate::reject::Error;
 use crate::GAME_STATE;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use warp::{Rejection, Reply};
@@ -43,7 +44,7 @@ pub async fn route_capabilities(guid: Uuid, action: ActionDTO) -> Result<impl Re
     };
 
     if let Some(blackmailer) = role.modifiers.blackmailed_by {
-        if let Ok(idx) = players.binary_search(&blackmailer) {
+        if let Some((idx, _)) = players.iter().find_position(|item| **item == blackmailer) {
             players.remove(idx);
         }
     }

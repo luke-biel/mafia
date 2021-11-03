@@ -21,11 +21,17 @@ pub enum Context {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "msg", content = "details", rename_all = "camelCase")]
+#[serde(tag = "msg", content = "details")]
 pub enum Broadcast {
     GameStart,
-    GameEnd { faction: Faction },
-    TimePasses { day: usize, time_of_day: TimeOfDay },
+    GameEnd {
+        faction: Faction,
+    },
+    #[serde(rename_all = "camelCase")]
+    TimePasses {
+        day: usize,
+        time_of_day: TimeOfDay,
+    },
 }
 
 #[derive(Debug, Clone, Serialize)]

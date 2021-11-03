@@ -1,4 +1,4 @@
-use crate::comms::incoming::ResponseKind;
+use crate::comms::incoming::ActionResponse;
 use crate::comms::outgoing::{Context, MessageOut};
 use serde::{Deserialize, Serialize};
 
@@ -25,18 +25,38 @@ impl ActionRequest {
         }
     }
 
-    pub fn expected_response(&self) -> ResponseKind {
-        match self {
-            ActionRequest::CheckGoodBad => ResponseKind::CheckGoodBadTarget,
-            ActionRequest::CheckCard => ResponseKind::CheckCardTarget,
-            ActionRequest::Heal => ResponseKind::HealTarget,
-            ActionRequest::SelectBlackmailed => ResponseKind::BlackmailTarget,
-            ActionRequest::FinishPatient => ResponseKind::FinishTarget,
-            ActionRequest::MarkForDeath => ResponseKind::DeathMarkTarget,
-            ActionRequest::SelectDiabolized => ResponseKind::DiabolizationTarget,
-            ActionRequest::Shoot => ResponseKind::ShootTarget,
-            ActionRequest::ProposeVote => ResponseKind::VoteProposal,
-            ActionRequest::CastVote => ResponseKind::VoteTarget,
-        }
+    pub fn is_sufficient(&self, response: &ActionResponse) -> bool {
+        matches!(
+            (self, response),
+            (
+                ActionRequest::CheckGoodBad,
+                ActionResponse::CheckGoodBadTarget { .. }
+            ) | (
+                ActionRequest::CheckCard,
+                ActionResponse::CheckCardTarget { .. }
+            ) | (ActionRequest::Heal, ActionResponse::HealTarget { .. })
+                | (
+                    ActionRequest::SelectBlackmailed,
+                    ActionResponse::BlackmailTarget { .. }
+                )
+                | (
+                    ActionRequest::FinishPatient,
+                    ActionResponse::FinishTarget { .. }
+                )
+                | (
+                    ActionRequest::MarkForDeath,
+                    ActionResponse::DeathMarkTarget { .. }
+                )
+                | (
+                    ActionRequest::SelectDiabolized,
+                    ActionResponse::DiabolizationTarget { .. }
+                )
+                | (ActionRequest::Shoot, ActionResponse::ShootTarget { .. })
+                | (
+                    ActionRequest::ProposeVote,
+                    ActionResponse::VoteProposal { .. }
+                )
+                | (ActionRequest::CastVote, ActionResponse::VoteTarget { .. })
+        )
     }
 }

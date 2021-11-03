@@ -5,8 +5,8 @@ use std::fmt::Debug;
 use itertools::Itertools;
 use uuid::Uuid;
 
-use crate::comms::incoming::ResponseKind;
-use crate::comms::incoming::{MessageInBody, Meta};
+use crate::comms::incoming::ActionResponse;
+use crate::comms::incoming::Meta;
 use crate::comms::outgoing::{Broadcast, MessageOut};
 use action_request::ActionRequest;
 use lobby::{Lobby, TimeOfDay};
@@ -75,10 +75,10 @@ pub async fn start_game() {
             let chan = comms.out_send_chan(id).unwrap();
             match expected_responses.entry(id) {
                 Entry::Vacant(v) => {
-                    v.insert(vec![action.expected_response()]);
+                    v.insert(vec![action]);
                 }
                 Entry::Occupied(mut o) => {
-                    o.get_mut().push(action.expected_response());
+                    o.get_mut().push(action);
                 }
             }
             expected_response_count += 1;
@@ -96,7 +96,7 @@ pub async fn start_game() {
         {
             let delta = recv.recv().await.unwrap();
 
-            deltas.insert(delta.meta, delta.body);
+            deltas.insert(delta.meta, delta.msg);
         }
 
         for (id, message) in calculate_new_game_state(deltas) {
@@ -107,7 +107,7 @@ pub async fn start_game() {
     }
 }
 
-fn calculate_new_game_state(deltas: HashMap<Meta, MessageInBody>) -> Vec<(Uuid, MessageOut)> {
+fn calculate_new_game_state(deltas: HashMap<Meta, ActionResponse>) -> Vec<(Uuid, MessageOut)> {
     let mut lobby = {
         let gd = GAME_STATE.read().unwrap();
         gd.lobby.clone()
@@ -119,13 +119,13 @@ fn calculate_new_game_state(deltas: HashMap<Meta, MessageInBody>) -> Vec<(Uuid, 
 }
 
 fn is_sufficient(
-    delta: &HashMap<Meta, MessageInBody>,
-    expected: &HashMap<Uuid, Vec<ResponseKind>>,
+    delta: &HashMap<Meta, ActionResponse>,
+    expected: &HashMap<Uuid, Vec<ActionRequest>>,
 ) -> bool {
-    delta.keys().all(|item| {
+    delta.iter().all(|(meta, item)| {
         expected
-            .get(&item.guid)
-            .map(|exists| exists.contains(&item.response_kind))
+            .get(&meta.guid)
+            .map(|exists| exists.iter().any(|req| req.is_sufficient(item)))
             .unwrap_or(false)
     })
 }

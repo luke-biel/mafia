@@ -1,5 +1,5 @@
-use crate::comms::incoming::ResponseKind;
-use crate::comms::incoming::{MessageInBody, Meta};
+use crate::comms::incoming::ActionResponse;
+use crate::comms::incoming::Meta;
 use crate::comms::outgoing::{Broadcast, MessageOut, Notification};
 use crate::game::card::{Faction, Role, Value};
 use serde::Serialize;
@@ -81,7 +81,7 @@ impl Lobby {
         None
     }
 
-    pub fn update(&mut self, deltas: HashMap<Meta, MessageInBody>) -> Vec<(Uuid, MessageOut)> {
+    pub fn update(&mut self, deltas: HashMap<Meta, ActionResponse>) -> Vec<(Uuid, MessageOut)> {
         let mut killed = Self::resolve_mafia_kill_and_heal(&deltas);
         killed.extend(self.resolve_aod(&deltas));
         killed.extend(self.resolve_death_of_blackmailer(killed.clone().into_iter()));
@@ -120,14 +120,14 @@ impl Lobby {
         }
     }
 
-    fn resolve_mafia_kill_and_heal(deltas: &HashMap<Meta, MessageInBody>) -> Vec<Uuid> {
+    fn resolve_mafia_kill_and_heal(deltas: &HashMap<Meta, ActionResponse>) -> Vec<Uuid> {
         let pavulon_targets = deltas
             .iter()
-            .filter(|(meta, _)| meta.response_kind == ResponseKind::FinishTarget)
+            .filter(|(_, val)| matches!(val, ActionResponse::FinishTarget { .. }))
             .collect::<Vec<_>>();
         let real_heals = deltas
             .iter()
-            .filter(|(meta, _)| meta.response_kind == ResponseKind::HealTarget)
+            .filter(|(_, val)| matches!(val, ActionResponse::HealTarget { .. }))
             .filter(|(_, h_body)| {
                 !pavulon_targets
                     .iter()
@@ -137,7 +137,7 @@ impl Lobby {
 
         deltas
             .iter()
-            .filter(|(meta, _)| meta.response_kind == ResponseKind::ShootTarget)
+            .filter(|(_, val)| matches!(val, ActionResponse::ShootTarget { .. }))
             .filter(|(_, k_body)| {
                 !real_heals
                     .iter()
@@ -147,11 +147,14 @@ impl Lobby {
             .collect()
     }
 
-    fn resolve_aod(&mut self, deltas: &HashMap<Meta, MessageInBody>) -> impl Iterator<Item = Uuid> {
+    fn resolve_aod(
+        &mut self,
+        deltas: &HashMap<Meta, ActionResponse>,
+    ) -> impl Iterator<Item = Uuid> {
         let mut killed = Vec::new();
         for (_, body) in deltas
             .iter()
-            .filter(|(meta, _)| meta.response_kind == ResponseKind::DeathMarkTarget)
+            .filter(|(_, val)| matches!(val, ActionResponse::DeathMarkTarget { .. }))
         {
             let id = body.id();
 
@@ -189,12 +192,12 @@ impl Lobby {
 
     fn resolve_blackmailing(
         &mut self,
-        deltas: &HashMap<Meta, MessageInBody>,
+        deltas: &HashMap<Meta, ActionResponse>,
     ) -> impl Iterator<Item = (Uuid, MessageOut)> {
         let mut responses = Vec::new();
         for (meta, body) in deltas
             .iter()
-            .filter(|(meta, _)| meta.response_kind == ResponseKind::BlackmailTarget)
+            .filter(|(_, val)| matches!(val, ActionResponse::BlackmailTarget { .. }))
         {
             self.roles
                 .get_mut(&body.id())
@@ -214,13 +217,13 @@ impl Lobby {
 
     fn resolve_checking(
         &self,
-        deltas: &HashMap<Meta, MessageInBody>,
+        deltas: &HashMap<Meta, ActionResponse>,
     ) -> impl Iterator<Item = (Uuid, MessageOut)> {
         let mut responses = Vec::new();
 
         for (meta, body) in deltas
             .iter()
-            .filter(|(meta, _)| meta.response_kind == ResponseKind::CheckCardTarget)
+            .filter(|(_, val)| matches!(val, ActionResponse::CheckCardTarget { .. }))
         {
             let function = self.roles.get(&body.id()).expect("checked player card");
             responses.push((meta.guid, Notification::card_check(function.card)))
@@ -228,7 +231,7 @@ impl Lobby {
 
         for (meta, body) in deltas
             .iter()
-            .filter(|(meta, _)| meta.response_kind == ResponseKind::CheckGoodBadTarget)
+            .filter(|(_, val)| matches!(val, ActionResponse::CheckGoodBadTarget { .. }))
         {
             let function = self.roles.get(&body.id()).expect("checked player good_bad");
             responses.push((
@@ -247,8 +250,8 @@ impl Lobby {
 
 #[cfg(test)]
 mod tests {
-    use crate::comms::incoming::ResponseKind;
-    use crate::comms::incoming::{MessageInBody, Meta};
+    use crate::comms::incoming::ActionResponse;
+    use crate::comms::incoming::Meta;
     use crate::game::lobby::Lobby;
     use std::collections::HashMap;
     use test_case::test_case;
@@ -318,27 +321,30 @@ mod tests {
             deltas.insert(
                 Meta {
                     guid: Uuid::new_v4(),
-                    response_kind: ResponseKind::ShootTarget,
                 },
-                MessageInBody::Id(id.parse().expect("parse uuid kill")),
+                ActionResponse::ShootTarget {
+                    id: id.parse().expect("parse uuid kill"),
+                },
             );
         }
         for id in heals {
             deltas.insert(
                 Meta {
                     guid: Uuid::new_v4(),
-                    response_kind: ResponseKind::HealTarget,
                 },
-                MessageInBody::Id(id.parse().expect("parse uuid heal")),
+                ActionResponse::HealTarget {
+                    id: id.parse().expect("parse uuid heal"),
+                },
             );
         }
         for id in finishes {
             deltas.insert(
                 Meta {
                     guid: Uuid::new_v4(),
-                    response_kind: ResponseKind::FinishTarget,
                 },
-                MessageInBody::Id(id.parse().expect("parse uuid finishes")),
+                ActionResponse::FinishTarget {
+                    id: id.parse().expect("parse uuid finishes"),
+                },
             );
         }
 

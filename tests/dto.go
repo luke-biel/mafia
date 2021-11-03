@@ -5,10 +5,14 @@ type RegisterDTO struct {
 }
 
 type ActionDTO struct {
-	Kind     ActionKind `json:"kind"`
-	Id       string     `json:"id,omitempty"`
-	VoteKind VoteKind   `json:"vote_kind,omitempty"`
-	Skip     bool       `json:"skip,omitempty"`
+	Action ActionKind `json:"kind"`
+	Body   ActionBody `json:"body"`
+}
+
+type ActionBody struct {
+	Id       string   `json:"id,omitempty"`
+	VoteKind VoteKind `json:"vote_kind,omitempty"`
+	Skip     bool     `json:"skip,omitempty"`
 }
 
 type ActionKind string

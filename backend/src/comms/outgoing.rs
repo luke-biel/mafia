@@ -39,6 +39,7 @@ pub enum Broadcast {
 pub enum Notification {
     Killed,
     RaisedFromGrave,
+    RoleAssignment { card: Role },
     Blackmailed { id: Uuid },
     CardCheck { card: Role },
     FactionCheck { good: bool },
@@ -79,6 +80,13 @@ impl Notification {
         MessageOut {
             requires_response: false,
             msg: Context::Notification(Notification::RaisedFromGrave),
+        }
+    }
+
+    pub fn role_assignment(card: Role) -> MessageOut {
+        MessageOut {
+            requires_response: false,
+            msg: Context::Notification(Notification::RoleAssignment { card }),
         }
     }
 

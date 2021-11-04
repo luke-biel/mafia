@@ -66,7 +66,7 @@ pub fn handle_user_command(line: &str) -> Result<String, &'static str> {
 
             Ok("done".to_string())
         }
-        _ if line.starts_with("roles") => {
+        _ if line.starts_with("start") => {
             let (_, role_list) = line.split_once(' ').unwrap();
             let roles = role_list
                 .split(',')

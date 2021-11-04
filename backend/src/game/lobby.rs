@@ -4,6 +4,7 @@ use crate::comms::outgoing::{Broadcast, MessageOut, Notification};
 use crate::game::card::{Faction, Role, Value};
 use itertools::Itertools;
 use serde::Serialize;
+use std::cmp::max;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -104,6 +105,7 @@ impl Lobby {
         responses.extend(self.resolve_checking(&deltas));
 
         self.resolve_vote_proposals(&deltas);
+        responses.extend(self.resolve_vote_casts(&deltas));
 
         self.day += self.time_of_day.advance();
 
@@ -267,6 +269,46 @@ impl Lobby {
         }
 
         responses.into_iter()
+    }
+
+    fn resolve_vote_casts(
+        &mut self,
+        deltas: &HashMap<Meta, ActionResponse>,
+    ) -> Vec<(Uuid, MessageOut)> {
+        let votes = deltas
+            .iter()
+            .filter_map(|(_, resp)| match resp {
+                ActionResponse::VoteTarget { id, vote_kind } => Some((*id, *vote_kind)),
+                _ => None,
+            })
+            .sorted()
+            .dedup_with_count()
+            .collect::<Vec<_>>();
+
+        let max_count = votes.iter().fold(0usize, |acc, vote| max(acc, vote.0));
+
+        let top = votes
+            .iter()
+            .filter(|vote| vote.0 == max_count)
+            .map(|vote| vote.1)
+            .collect::<Vec<_>>();
+
+        match &top[..] {
+            [] => vec![],
+            [(id, vote_kind)] => {
+                if VoteKind::Check.eq(vote_kind) {
+                    let good = self.roles.get(id).unwrap().card.faction() == Faction::City;
+                    self.roles
+                        .keys()
+                        .map(|id| (*id, Notification::faction_check(good)))
+                        .collect()
+                } else {
+                    self.roles.get_mut(id).unwrap().alive = false;
+                    vec![(*id, Notification::killed())]
+                }
+            }
+            _ => todo!("{:?}", top),
+        }
     }
 }
 

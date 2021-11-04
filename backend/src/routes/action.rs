@@ -6,7 +6,6 @@ use uuid::Uuid;
 use warp::{Rejection, Reply};
 
 pub async fn route_action(guid: Uuid, action: ActionResponse) -> Result<impl Reply, Rejection> {
-    eprintln!("{:?}", action);
     let write = PLAYER_COMMS.write().unwrap();
     write
         .in_send_chan()

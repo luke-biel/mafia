@@ -13,7 +13,7 @@ pub struct Meta {
     pub guid: Uuid,
 }
 
-#[derive(Copy, Debug, Clone, Deserialize, PartialEq, Eq, Hash, Serialize)]
+#[derive(Copy, Debug, Clone, Deserialize, PartialEq, Eq, Hash, Serialize, PartialOrd, Ord)]
 #[serde(rename_all = "camelCase")]
 pub enum VoteKind {
     Check,

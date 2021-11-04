@@ -21,6 +21,7 @@ const (
 	VoteProposal ActionKind = "VoteProposal"
 	VoteSkip                = "VoteSkip"
 	VoteTarget              = "VoteTarget"
+	ShootTarget             = "ShootTarget"
 )
 
 const (

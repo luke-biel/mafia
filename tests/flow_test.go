@@ -99,7 +99,23 @@ func TestBlankFlow(t *testing.T) {
 		},
 	}))
 
-	debugChannels(cityChan, mafiaChan, syndicateChan)
+	// For city and mafia the game advances into night
+	AssertEventReceived(t, "{\"requiresResponse\":false,\"msg\":\"TimePasses\",\"details\":{\"day\":1,\"timeOfDay\":\"Night\"}}", cityChan, mafiaChan)
+	// Syndicate gets killed by dusk voting
+	AssertEventReceived(t, "{\"requiresResponse\":false,\"msg\":\"Killed\"}", syndicateChan)
+
+	// Mafia gets a shot
+	AssertEventReceived(t, "{\"requiresResponse\":true,\"msg\":\"Shoot\"}", mafiaChan)
+
+	assert.True(t, Action(mafia, ActionDTO{
+		Action: ShootTarget,
+		Details: &ActionDetails{
+			Id: city,
+		},
+	}))
+
+	// Game ends for everyone
+	AssertEventReceived(t, "{\"requiresResponse\":false,\"msg\":\"GameEnd\",\"details\":{\"faction\":\"Mafia\"}}", cityChan, mafiaChan, syndicateChan)
 }
 
 func assignRole(ch chan *sse.Event, id string, city *string, mafia *string, syndicate *string, cityChan *chan *sse.Event, mafiaChan *chan *sse.Event, syndicateChan *chan *sse.Event) {
